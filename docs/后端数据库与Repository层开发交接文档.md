@@ -68,6 +68,7 @@ app/script/seed.py
 数据库模型统一在 `app/entities/models.py` 中通过 SQLAlchemy 进行声明。所有具有主键 `id` 的 UGC 和用户实体采用 `uuid4` 字符串，食堂、档口、菜品采用短字符串 UUID 或设定标识。
 
 ### 5.1 Canteen（食堂）
+```bash
 id              String(50)      PK
 name            String(100)     食堂全称
 short_name      String(50)      简称
@@ -89,10 +90,12 @@ intro_blocks    JSON            前端区块化介绍配置
 
 created_at      DateTime        创建时间
 updated_at      DateTime        更新时间
+```
 
 关系：stalls -> Stall[] (backref='canteen', cascade="all, delete-orphan")
 
 ### 5.2 Stall（档口）
+```bash
 id              String(100)     PK
 canteen_id      String(50)      FK -> canteens.id
 name            String(100)     档口名称
@@ -104,10 +107,12 @@ summary         Text            档口简介
 
 created_at      DateTime
 updated_at      DateTime
+```
 
 关系：dishes -> Dish[] (backref='stall', cascade="all, delete-orphan")
 
 ### 5.3 Dish（菜品）
+```bash
 id              String(100)     PK
 stall_id        String(100)     FK -> stalls.id
 canteen_id      String(50)      FK -> canteens.id (冗余，提升查询效率)
@@ -126,10 +131,12 @@ avoid_votes     Integer         避雷人数（默认 0）
 
 created_at      DateTime
 updated_at      DateTime
+```
 
 关系：reviews -> Review[] (backref='dish')
 
 ### 5.4 User（用户）
+```bash
 id              String(36)      PK, UUID
 account         String(50)      登录账号（唯一索引）
 password_hash   String(255)     密码哈希
@@ -143,8 +150,10 @@ total_used_points Integer       累计消耗积分
 
 created_at      DateTime
 updated_at      DateTime
+```
 
 ### 5.5 PointRecord（积分流水）
+```bash
 id              String(36)      PK, UUID
 user_id         String(36)      FK -> users.id (索引)
 
@@ -154,8 +163,10 @@ source_or_dest  String(255)     来源或去向说明
 
 created_at      DateTime
 updated_at      DateTime
+```
 
 ### 5.6 Review（菜品评价）
+```bash
 id              String(36)      PK, UUID
 dish_id         String(100)     FK -> dishes.id
 user_id         String(36)      FK -> users.id
@@ -164,8 +175,10 @@ comment         Text            评论内容（必填）
 
 created_at      DateTime
 updated_at      DateTime
+```
 
 ### 5.7 Rant（吐槽墙）
+```bash
 id              String(36)      PK, UUID
 canteen_name    String(100)     吐槽关联食堂（允许为空）
 author_account  String(50)      FK -> users.account
@@ -179,8 +192,10 @@ auditor_account String(50)      FK -> users.account（允许为空）
 
 created_at      DateTime
 updated_at      DateTime
+```
 
 ### 5.8 DishSubmission（菜品提报）
+```bash
 id              String(36)      PK, UUID
 dish_name       String(100)     菜品名称（必填）
 canteen_name    String(100)     食堂名称（必填）
@@ -198,13 +213,36 @@ auditor_account String(50)      FK -> users.account（允许为空）
 
 created_at      DateTime
 updated_at      DateTime
-
+```
 
 ## 6. Repository 层设计
 本项目使用 Repository 层将数据操作细节局限在其内部：
 1. **DiningDisplayRepository**：封装餐饮展现系统相关的展示业务查询操作，如获取高分餐品，指定档口下菜品等。
+```bash
+get_all_canteens: 查询所有食堂的全部信息。
+get_stalls_by_canteen_id: 根据食堂 ID 查询下属所有档口的全部信息。
+get_dishes_by_stall_id: 根据档口 ID 查询下属所有餐品的全部信息。
+get_top_dishes: 查询评分排名前 N 的餐品全部信息。
+increment_dish_recommend_votes: 将指定菜品的推荐人数加 1。
+increment_dish_avoid_votes: 将指定菜品的避雷人数加 1。
+```
 2. **ReviewRepository**：封装用户反馈评价内容的拉取与创建操作。
+```bash
+create_review: 在 reviews 表中插入一条新的用户菜品评价记录。
+```
 3. **RantRepository** 与 **DishSubmissionRepository**：UGC 提报模型的相关操作，涉及状态的读取（用于管理员审核读取）、操作插入。
+**RantRepository**:
+```bash
+create_rant: 在 rants 表中插入一条新的用户吐槽反馈记录。
+get_rants_by_status: 根据输入的状态，查询 rants 表中对应的全部完整行数据。
+update_rant_audit_result: 根据吐槽记录的唯一 id，填充其审核状态、审核意见及负责审批的管理员账号。
+```
+**DishSubmissionRepository**:
+```bash
+create_submission: 在 dish_submissions 表中插入一条新的菜品提报记录。
+get_submissions_by_status: 根据输入的状态，查询 dish_submissions 表中对应的全部完整行数据。
+update_audit_result: 根据提报工单的唯一 id，填充其审核状态、审核意见及负责审批的管理员账号。
+```
 
 ## 7. 数据流说明
 后续开发应当坚持以下数据流通方向，不再允许在 Web 服务层（`app/routes/`）里直接进行 `db.session.query`，必须由 `services` 层通过调用各 `repositories` 的获取数据来组装返回结构。
