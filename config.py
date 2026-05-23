@@ -24,6 +24,9 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'foodtime-super-secret-key'
 
 
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'data', 'images')
+    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 

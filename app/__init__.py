@@ -31,7 +31,9 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     from app.entities import models
 
     from app.routes.auth_routes import auth_bp
+    from app.routes.dish_submission_routes import submission_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(submission_bp)
 
 
     @app.before_request
