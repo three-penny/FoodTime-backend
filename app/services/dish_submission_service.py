@@ -109,13 +109,10 @@ class DishSubmissionService:
             'created_at': submission.created_at.isoformat() if submission.created_at else None,
         }
 
-    def get_submissions_by_user(self, account: str, status: str | None = None) -> list[dict]:
-        """查询指定用户的提报记录。"""
-        # 当前repository只支持按status查询，用户维度过滤需在service层做
-        all_submissions = self.repository.get_submissions_by_status(status) if status else []
-        # 过滤当前用户
-        user_submissions = [s for s in all_submissions if s.submitter_account == account]
-        return [self._to_dict(s) for s in user_submissions]
+    def get_submissions_by_user(self, account: str) -> list[dict]:
+        """查询指定用户的提报记录（按创建时间倒序）。"""
+        submissions = self.repository.get_submissions_by_account(account)
+        return [self._to_dict(s) for s in submissions]
 
     def _to_dict(self, submission) -> dict:
         return {
