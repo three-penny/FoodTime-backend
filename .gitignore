@@ -6,3 +6,8 @@ __pycache__/
 *.db
 .DS_Store
 .idea/
+*.egg-info/
+dist/
+build/
+*.sqlite3
+instance/
