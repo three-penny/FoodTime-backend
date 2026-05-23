@@ -30,6 +30,9 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
 
     from app.entities import models
 
+    from app.routes.auth_routes import auth_bp
+    app.register_blueprint(auth_bp)
+
 
     @app.before_request
     def ensure_trace_id():
