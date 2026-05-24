@@ -95,6 +95,15 @@ class DishSubmissionService:
             submitter_account=submitter_account,
         )
 
+        try:
+            from app.services.points_service import PointsService
+            from app.repositories.auth_repository import AuthRepository
+            user = AuthRepository().find_by_account(submitter_account)
+            if user:
+                PointsService().add_points(user.id, 5, '上传菜品提报', 'upload')
+        except Exception:
+            pass
+
         return {
             'id': submission.id,
             'dish_name': submission.dish_name,

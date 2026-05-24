@@ -1,9 +1,11 @@
 from app.repositories.review_repository import ReviewRepository
+from app.services.points_service import PointsService
 
 
 class ReviewService:
-    def __init__(self, repository=None):
+    def __init__(self, repository=None, points_service=None):
         self.repository = repository or ReviewRepository()
+        self.points_service = points_service or PointsService()
 
     def create_review(self, dish_id, user_id, rating, comment):
         if not dish_id or not user_id:
@@ -21,6 +23,12 @@ class ReviewService:
         )
         from app.extensions import db
         db.session.commit()
+
+        try:
+            self.points_service.add_points(user_id, 3, '发表菜品评价', 'review')
+        except Exception as e:
+            pass
+
         return {
             'id': review.id,
             'dishId': review.dish_id,
