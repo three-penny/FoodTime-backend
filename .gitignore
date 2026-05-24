@@ -11,5 +11,11 @@ dist/
 build/
 *.sqlite3
 instance/
-data/images/*
-!data/images/.gitkeep
+data/canteen_img/*
+!data/canteen_img/.gitkeep
+data/stall_img/*
+!data/stall_img/.gitkeep
+data/dish_img/*
+!data/dish_img/.gitkeep
+data/submission_img/*
+!data/submission_img/.gitkeep

@@ -45,3 +45,18 @@ class ReviewRepository:
         db.session.flush()
         db.session.commit()
         return new_review
+
+    def get_reviews_by_dish(self, dish_id: str) -> list[Review]:
+        """
+        功能描述：根据菜品 ID 查询所有评价（按创建时间倒序）。
+        参数说明：
+            dish_id: 目标菜品的唯一标识。
+        返回值说明：
+            返回符合条件的 Review 模型对象列表。
+        """
+        return (
+            db.session.query(Review)
+            .filter(Review.dish_id == dish_id)
+            .order_by(Review.created_at.desc())
+            .all()
+        )

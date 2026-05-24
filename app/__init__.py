@@ -32,14 +32,28 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
 
     from app.entities import models
 
-    @app.route('/api/v1/images/<path:filename>')
-    def serve_upload_image(filename):
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    @app.route('/api/v1/images/canteen/<path:filename>')
+    def serve_canteen_image(filename):
+        return send_from_directory(app.config['CANTEEN_IMG_FOLDER'], filename)
+
+    @app.route('/api/v1/images/stall/<path:filename>')
+    def serve_stall_image(filename):
+        return send_from_directory(app.config['STALL_IMG_FOLDER'], filename)
+
+    @app.route('/api/v1/images/dish/<path:filename>')
+    def serve_dish_image(filename):
+        return send_from_directory(app.config['DISH_IMG_FOLDER'], filename)
+
+    @app.route('/api/v1/images/submission/<path:filename>')
+    def serve_submission_image(filename):
+        return send_from_directory(app.config['SUBMISSION_IMG_FOLDER'], filename)
 
     from app.routes.auth_routes import auth_bp
     from app.routes.dish_submission_routes import submission_bp
+    from app.routes.review_routes import review_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(submission_bp)
+    app.register_blueprint(review_bp)
 
 
     @app.before_request

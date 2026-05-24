@@ -27,15 +27,15 @@ class DishSubmissionService:
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
     def _save_image(self, file) -> str:
-        """保存上传图片到 data/images/，返回相对路径。"""
-        upload_folder = current_app.config['UPLOAD_FOLDER']
+        """保存上传图片到 data/submission_img/，返回文件名。"""
+        upload_folder = current_app.config['SUBMISSION_IMG_FOLDER']
         os.makedirs(upload_folder, exist_ok=True)
 
         ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
         unique_name = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
         filepath = os.path.join(upload_folder, unique_name)
         file.save(filepath)
-        return f"data/images/{unique_name}"
+        return unique_name
 
     def create_submission(
         self,
