@@ -67,6 +67,7 @@ class DiningDisplayRepository:
             {"recommend_votes": Dish.recommend_votes + 1},
             synchronize_session=False
         )
+        db.session.commit()
         return result > 0
 
     def increment_dish_avoid_votes(self, dish_id: str) -> bool:
@@ -82,4 +83,5 @@ class DiningDisplayRepository:
             {"avoid_votes": Dish.avoid_votes + 1},
             synchronize_session=False
         )
+        db.session.commit()
         return result > 0

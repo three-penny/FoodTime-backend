@@ -9,6 +9,7 @@ import uuid
 import logging
 from werkzeug.utils import secure_filename
 from flask import current_app
+from app.extensions import db
 from app.repositories.dish_submission_repository import DishSubmissionRepository
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,7 @@ class DishSubmissionService:
             tags=tags,
             submitter_account=submitter_account,
         )
+        db.session.commit()
 
         return {
             'id': submission.id,

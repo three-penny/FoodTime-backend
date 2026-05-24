@@ -5,8 +5,10 @@
 创建时间：2026-05-19
 """
 
+import os
 import uuid
-from flask import Flask, g, request, jsonify
+from flask import Flask, g, request, jsonify, send_from_directory
+from werkzeug.exceptions import HTTPException
 from config import DevelopmentConfig
 from app.extensions import db, migrate
 
@@ -29,6 +31,10 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     migrate.init_app(app, db)
 
     from app.entities import models
+
+    @app.route('/api/v1/images/<path:filename>')
+    def serve_upload_image(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     from app.routes.auth_routes import auth_bp
     from app.routes.dish_submission_routes import submission_bp
@@ -54,6 +60,9 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
             error: 触发的原始 Python 异常对象。
         对齐规范：rules.md 第 4.2 节全局异常拦截与标准错误码。
         """
+        # HTTP 异常（404 等）交由 Flask 内置处理，避免图片服务等端点返回 500 JSON
+        if isinstance(error, HTTPException):
+            return error
 
         trace_id = getattr(g, 'trace_id', '6f6f6474696d65')
 

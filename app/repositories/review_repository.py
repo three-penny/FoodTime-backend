@@ -42,6 +42,6 @@ class ReviewRepository:
             comment=comment
         )
         db.session.add(new_review)
-        # 执行 flush 以便让数据库提前生成该行的唯一主键 id 并映射回对象，但不提交事务
         db.session.flush()
+        db.session.commit()
         return new_review

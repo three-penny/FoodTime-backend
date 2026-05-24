@@ -4,7 +4,8 @@
 作者：FoodTime Backend Team
 创建时间：2026-05-23
 """
-from flask import Blueprint, request, jsonify, g
+import os
+from flask import Blueprint, request, jsonify, g, current_app, send_from_directory
 from app.services.dish_submission_service import DishSubmissionService
 
 submission_bp = Blueprint('submission', __name__, url_prefix='/api/v1/submissions')

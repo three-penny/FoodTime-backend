@@ -111,4 +111,5 @@ class DishSubmissionRepository:
             },
             synchronize_session=False
         )
+        db.session.commit()
         return result > 0

@@ -43,8 +43,8 @@ class RantRepository:
             tag=tag
         )
         db.session.add(new_rant)
-        # 执行 flush 以便让 SQLite 提前生成该行的唯一主键 id，方便 Service 层后续直接获取并透传 id，但不提交事务
         db.session.flush()
+        db.session.commit()
         return new_rant
 
     def get_rants_by_status(self, status: str) -> list[Rant]:
@@ -84,4 +84,5 @@ class RantRepository:
             },
             synchronize_session=False
         )
+        db.session.commit()
         return result > 0
