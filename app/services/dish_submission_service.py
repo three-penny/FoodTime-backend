@@ -114,6 +114,13 @@ class DishSubmissionService:
         submissions = self.repository.get_submissions_by_account(account)
         return [self._to_dict(s) for s in submissions]
 
+    def get_all_submissions(self) -> list[dict]:
+        """查询所有提报记录（按创建时间倒序）。"""
+        from app.entities.models import DishSubmission
+        from app.extensions import db
+        submissions = db.session.query(DishSubmission).order_by(DishSubmission.created_at.desc()).all()
+        return [self._to_dict(s) for s in submissions]
+
     def _to_dict(self, submission) -> dict:
         return {
             'id': submission.id,
