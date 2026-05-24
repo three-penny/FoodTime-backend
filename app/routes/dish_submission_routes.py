@@ -98,3 +98,23 @@ def create_submission():
             'message': str(e),
             'trace_id': g.trace_id,
         }), 422
+
+
+@submission_bp.put('/<submission_id>/audit')
+def audit_submission(submission_id):
+    data = request.get_json(silent=True) or {}
+    service = DishSubmissionService()
+    try:
+        service.audit_submission(
+            submission_id=submission_id,
+            status=data.get('status', ''),
+            audit_reason=data.get('reason', ''),
+            auditor_account=data.get('auditor', ''),
+        )
+        return jsonify({'code': 0, 'message': '审核完成', 'data': {}, 'trace_id': g.trace_id}), 200
+    except ValueError as e:
+        return jsonify({
+            'code': 'SUBMIT_AUDIT_422_001',
+            'message': str(e),
+            'trace_id': g.trace_id,
+        }), 422
