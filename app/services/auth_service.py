@@ -7,12 +7,17 @@
 import re
 import logging
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
+from flask import current_app
 from app.repositories.auth_repository import AuthRepository
+from app.utils.auth_utils import generate_token
+from app.extensions import db
 
 logger = logging.getLogger(__name__)
 
 EMAIL_REGEX = re.compile(r'^\d+@bjtu\.edu\.cn$')
 DEFAULT_VERIFICATION_CODE = '000000'
+ALLOWED_ROLES = {'user', 'admin'}
 
 
 class AuthService:
@@ -21,7 +26,7 @@ class AuthService:
     def __init__(self, repository: AuthRepository | None = None):
         self.repository = repository or AuthRepository()
 
-    def register(self, email: str, password: str, nickname: str, verification_code: str, role: str = 'user') -> dict:
+    def register(self, email: str, password: str, nickname: str, verification_code: str, role: str = 'user', invite_code: str = '') -> dict:
         """
         用户注册。
         参数说明：
@@ -30,6 +35,7 @@ class AuthService:
             nickname: 用户昵称。
             verification_code: 邮箱验证码。
             role: 用户角色，默认为 'user'。
+            invite_code: 管理员邀请码，role=admin 时必填。
         返回值说明：
             返回创建成功的用户数据字典（不含密码哈希）。
         异常抛出：
@@ -39,6 +45,8 @@ class AuthService:
         password = password.strip()
         nickname = nickname.strip()
         verification_code = verification_code.strip()
+        role = role.strip().lower()
+        invite_code = invite_code.strip()
 
         if not email or not password or not nickname:
             raise ValueError('邮箱、密码和昵称不能为空。')
@@ -52,19 +60,36 @@ class AuthService:
         if verification_code != DEFAULT_VERIFICATION_CODE:
             raise ValueError('验证码错误。')
 
+        if role not in ALLOWED_ROLES:
+            raise ValueError('无效的用户角色。')
+
+        if role == 'admin':
+            expected_code = current_app.config.get('ADMIN_INVITE_CODE', '')
+            if not invite_code:
+                raise ValueError('管理员注册需要提供邀请码。')
+            if invite_code != expected_code:
+                raise ValueError('管理员邀请码不正确。')
+
         if self.repository.find_by_email(email):
             raise ValueError('该邮箱已被注册。')
 
         account = email.split('@')[0]
 
+        if self.repository.find_by_account(account):
+            raise ValueError('该学号已被注册。')
+
         password_hash = generate_password_hash(password)
-        user = self.repository.create_user(
-            account=account,
-            email=email,
-            password_hash=password_hash,
-            nickname=nickname,
-            role=role,
-        )
+        try:
+            user = self.repository.create_user(
+                account=account,
+                email=email,
+                password_hash=password_hash,
+                nickname=nickname,
+                role=role,
+            )
+        except IntegrityError:
+            db.session.rollback()
+            raise ValueError('该账号或邮箱已被注册，请勿重复提交。')
 
         return {
             'id': user.id,
@@ -81,9 +106,9 @@ class AuthService:
             login_id: 邮箱或账号。
             password: 明文密码。
         返回值说明：
-            返回登录成功的用户数据字典。
+            返回登录成功的用户数据字典与 JWT Token。
         异常抛出：
-            ValueError: 账号不存在或密码错误。
+            ValueError: 账号不存在、密码错误或账号已被禁用。
         """
         login_id = login_id.strip().lower()
         password = password.strip()
@@ -100,12 +125,22 @@ class AuthService:
         if not check_password_hash(user.password_hash, password):
             raise ValueError('账号或密码错误。')
 
+        if user.account_status != 'active':
+            raise ValueError('该账号已被禁用，请联系管理员。')
+
+        token = generate_token(
+            user_id=user.id,
+            account=user.account,
+            role=user.role,
+        )
+
         return {
             'id': user.id,
             'account': user.account,
             'email': user.email,
             'nickname': user.nickname,
             'role': user.role,
+            'token': token,
         }
 
     def send_verification_code(self, email: str) -> bool:

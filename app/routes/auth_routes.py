@@ -6,6 +6,7 @@
 """
 from flask import Blueprint, request, jsonify, g
 from app.services.auth_service import AuthService
+from app.utils.auth_utils import rate_limit
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -28,6 +29,7 @@ def register():
             nickname=data.get('nickname', ''),
             verification_code=data.get('verification_code', ''),
             role=data.get('role', 'user'),
+            invite_code=data.get('invite_code', ''),
         )
         return jsonify({
             'code': 0,
@@ -44,12 +46,13 @@ def register():
 
 
 @auth_bp.post('/login')
+@rate_limit(max_attempts=10, window_seconds=300)
 def login():
     """
     接口说明：用户登录，支持使用邮箱或账号登录。
     权限要求：无。
     请求参数：login_id, password。
-    返回说明：返回用户信息。
+    返回说明：返回用户信息与 JWT Token。
     """
     data = request.get_json(silent=True) or {}
     service = AuthService()
