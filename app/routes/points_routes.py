@@ -46,3 +46,29 @@ def daily_checkin():
             'message': str(e),
             'trace_id': g.trace_id,
         }), 422
+
+
+@points_bp.post('/points/consume')
+def consume_points():
+    data = request.get_json(silent=True) or {}
+    user_id = data.get('userId', '')
+    amount = data.get('amount', 0)
+    reason = data.get('reason', '')
+
+    if not user_id:
+        return jsonify({'code': 'POINTS_400_001', 'message': '缺少用户ID', 'trace_id': g.trace_id}), 400
+
+    try:
+        result = points_service.consume_points(user_id, int(amount), reason)
+        return jsonify({
+            'code': 0,
+            'message': '消费成功',
+            'data': result,
+            'trace_id': g.trace_id,
+        }), 200
+    except ValueError as e:
+        return jsonify({
+            'code': 'POINTS_422_002',
+            'message': str(e),
+            'trace_id': g.trace_id,
+        }), 422

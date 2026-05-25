@@ -6,6 +6,7 @@
 """
 import logging
 from app.repositories.review_repository import ReviewRepository
+from app.services.points_service import PointsService
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +14,9 @@ logger = logging.getLogger(__name__)
 class ReviewService:
     """菜品点评业务服务，编排评价创建与查询流程。"""
 
-    def __init__(self, repository: ReviewRepository | None = None):
+    def __init__(self, repository: ReviewRepository | None = None, points_service=None):
         self.repository = repository or ReviewRepository()
+        self.points_service = points_service or PointsService()
 
     def create_review(
         self,
@@ -53,6 +55,13 @@ class ReviewService:
             rating=rating,
             comment=comment,
         )
+        from app.extensions import db
+        db.session.commit()
+
+        try:
+            self.points_service.add_points(user_id, 3, '发表菜品评价', 'review')
+        except Exception:
+            pass
 
         return {
             'id': review.id,

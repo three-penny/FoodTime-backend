@@ -97,6 +97,15 @@ class DishSubmissionService:
         )
         db.session.commit()
 
+        try:
+            from app.services.points_service import PointsService
+            from app.repositories.auth_repository import AuthRepository
+            user = AuthRepository().find_by_account(submitter_account)
+            if user:
+                PointsService().add_points(user.id, 5, '上传菜品提报', 'upload')
+        except Exception:
+            pass
+
         return {
             'id': submission.id,
             'dish_name': submission.dish_name,
@@ -122,6 +131,24 @@ class DishSubmissionService:
         from app.extensions import db
         submissions = db.session.query(DishSubmission).order_by(DishSubmission.created_at.desc()).all()
         return [self._to_dict(s) for s in submissions]
+
+    def audit_submission(self, submission_id: str, status: str, audit_reason: str, auditor_account: str) -> bool:
+        """审核菜品提报工单。"""
+        if status not in ('approved', 'rejected'):
+            raise ValueError('审核状态只能是 approved 或 rejected。')
+        if not audit_reason or not audit_reason.strip():
+            raise ValueError('审核意见不能为空。')
+        success = self.repository.update_audit_result(
+            submission_id=submission_id,
+            status=status,
+            audit_reason=audit_reason.strip(),
+            auditor_account=auditor_account,
+        )
+        if not success:
+            raise ValueError('提报记录不存在。')
+        from app.extensions import db
+        db.session.commit()
+        return True
 
     def _to_dict(self, submission) -> dict:
         return {
