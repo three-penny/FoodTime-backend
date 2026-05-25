@@ -44,7 +44,6 @@ class RantRepository:
         )
         db.session.add(new_rant)
         db.session.flush()
-        db.session.commit()
         return new_rant
 
     def get_rants_by_status(self, status: str) -> list[Rant]:
