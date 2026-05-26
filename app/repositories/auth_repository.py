@@ -31,3 +31,14 @@ class AuthRepository:
         db.session.add(user)
         db.session.commit()
         return user
+
+    def update_user(self, user_id: str, **kwargs) -> User | None:
+        """更新用户信息。"""
+        user = User.query.get(user_id)
+        if not user:
+            return None
+        for key, value in kwargs.items():
+            if value is not None and hasattr(user, key):
+                setattr(user, key, value)
+        db.session.commit()
+        return user

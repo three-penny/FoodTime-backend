@@ -6,7 +6,7 @@
 """
 from flask import Blueprint, request, jsonify, g
 from app.services.auth_service import AuthService
-from app.utils.auth_utils import rate_limit
+from app.utils.auth_utils import rate_limit, login_required
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -98,6 +98,38 @@ def send_code():
     except ValueError as e:
         return jsonify({
             'code': 'AUTH_422_002',
+            'message': str(e),
+            'trace_id': g.trace_id,
+        }), 422
+
+
+@auth_bp.put('/profile')
+@login_required
+def update_profile():
+    """
+    接口说明：更新当前登录用户资料。
+    权限要求：需要用户登录。
+    请求参数（JSON）：nickname（可选）, email（可选）。
+    返回说明：返回更新后的用户信息。
+    """
+    data = request.get_json(silent=True) or {}
+    service = AuthService()
+
+    try:
+        user = service.update_profile(
+            user_id=g.user_id,
+            nickname=data.get('nickname'),
+            email=data.get('email'),
+        )
+        return jsonify({
+            'code': 0,
+            'message': '资料更新成功',
+            'data': user,
+            'trace_id': g.trace_id,
+        }), 200
+    except ValueError as e:
+        return jsonify({
+            'code': 'AUTH_422_003',
             'message': str(e),
             'trace_id': g.trace_id,
         }), 422

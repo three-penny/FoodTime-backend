@@ -143,6 +143,38 @@ class AuthService:
             'token': token,
         }
 
+    def update_profile(self, user_id: str, nickname: str | None = None, email: str | None = None) -> dict:
+        """更新用户资料。"""
+        updates = {}
+        if nickname is not None:
+            nickname = nickname.strip()
+            if not nickname:
+                raise ValueError('昵称不能为空。')
+            updates['nickname'] = nickname
+        if email is not None:
+            email = email.strip().lower()
+            if not EMAIL_REGEX.match(email):
+                raise ValueError('邮箱格式不正确。')
+            existing = self.repository.find_by_email(email)
+            if existing and existing.id != user_id:
+                raise ValueError('该邮箱已被其他账号使用。')
+            updates['email'] = email
+
+        if not updates:
+            raise ValueError('没有需要更新的字段。')
+
+        user = self.repository.update_user(user_id, **updates)
+        if not user:
+            raise ValueError('用户不存在。')
+
+        return {
+            'id': user.id,
+            'account': user.account,
+            'nickname': user.nickname,
+            'email': user.email or '',
+            'role': user.role,
+        }
+
     def send_verification_code(self, email: str) -> bool:
         """
         发送邮箱验证码（预留方法）。
