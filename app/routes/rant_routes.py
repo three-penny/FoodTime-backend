@@ -1,11 +1,13 @@
 from flask import Blueprint, jsonify, request, g
 from app.services.rant_service import RantService
+from app.utils.auth_utils import login_required, admin_required
 
 rant_bp = Blueprint('rants', __name__, url_prefix='/api/v1')
 rant_service = RantService()
 
 
 @rant_bp.get('/rants')
+@login_required
 def list_rants():
     status = request.args.get('status')
     if status:
@@ -16,6 +18,7 @@ def list_rants():
 
 
 @rant_bp.post('/rants')
+@login_required
 def create_rant():
     data = request.get_json(silent=True) or {}
 
@@ -41,6 +44,7 @@ def create_rant():
 
 
 @rant_bp.put('/rants/<rant_id>/audit')
+@admin_required
 def audit_rant(rant_id):
     data = request.get_json(silent=True) or {}
 

@@ -1,11 +1,13 @@
 from flask import Blueprint, jsonify, request, g
 from app.services.points_service import PointsService
+from app.utils.auth_utils import login_required
 
 points_bp = Blueprint('points', __name__, url_prefix='/api/v1')
 points_service = PointsService()
 
 
 @points_bp.get('/points')
+@login_required
 def get_points():
     user_id = request.args.get('userId', '')
     if not user_id:
@@ -17,6 +19,7 @@ def get_points():
 
 
 @points_bp.get('/points/history')
+@login_required
 def get_points_history():
     user_id = request.args.get('userId', '')
     if not user_id:
@@ -26,6 +29,7 @@ def get_points_history():
 
 
 @points_bp.post('/points/checkin')
+@login_required
 def daily_checkin():
     data = request.get_json(silent=True) or {}
     user_id = data.get('userId', '')
@@ -49,6 +53,7 @@ def daily_checkin():
 
 
 @points_bp.post('/points/consume')
+@login_required
 def consume_points():
     data = request.get_json(silent=True) or {}
     user_id = data.get('userId', '')

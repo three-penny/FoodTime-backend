@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, g
 from app.services.dining_display_service import DiningDisplayService
+from app.utils.auth_utils import login_required
 
 dining_bp = Blueprint('dining', __name__, url_prefix='/api/v1')
 
@@ -73,6 +74,7 @@ def list_dish_reviews(dish_id):
 
 
 @dining_bp.post('/dishes/<dish_id>/recommend')
+@login_required
 def recommend_dish(dish_id):
     success = service.recommend_dish(dish_id)
     if not success:
@@ -81,6 +83,7 @@ def recommend_dish(dish_id):
 
 
 @dining_bp.post('/dishes/<dish_id>/avoid')
+@login_required
 def avoid_dish(dish_id):
     success = service.avoid_dish(dish_id)
     if not success:

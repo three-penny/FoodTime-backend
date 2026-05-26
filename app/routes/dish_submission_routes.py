@@ -7,11 +7,13 @@
 import os
 from flask import Blueprint, request, jsonify, g, current_app, send_from_directory
 from app.services.dish_submission_service import DishSubmissionService
+from app.utils.auth_utils import login_required, admin_required
 
 submission_bp = Blueprint('submission', __name__, url_prefix='/api/v1/submissions')
 
 
 @submission_bp.get('')
+@login_required
 def list_submissions():
     """
     接口说明：查询菜品提报列表。提供 account 参数则查询指定用户；不提供则返回全部。
@@ -47,6 +49,7 @@ def list_submissions():
 
 
 @submission_bp.post('')
+@login_required
 def create_submission():
     """
     接口说明：创建菜品提报（支持图片上传）。
@@ -102,6 +105,7 @@ def create_submission():
 
 
 @submission_bp.put('/<submission_id>/audit')
+@admin_required
 def audit_submission(submission_id):
     data = request.get_json(silent=True) or {}
     service = DishSubmissionService()

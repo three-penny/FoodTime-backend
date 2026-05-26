@@ -6,11 +6,13 @@
 """
 from flask import Blueprint, request, jsonify, g
 from app.services.review_service import ReviewService
+from app.utils.auth_utils import login_required
 
 review_bp = Blueprint('review', __name__, url_prefix='/api/v1/reviews')
 
 
 @review_bp.get('')
+@login_required
 def list_reviews():
     """
     接口说明：查询指定菜品的评价列表。
@@ -41,13 +43,13 @@ def list_reviews():
 
 
 @review_bp.post('')
+@login_required
 def create_review():
     """
     接口说明：创建菜品评价。
-    权限要求：需要用户登录。
+    权限要求：需要用户登录（从 JWT 获取用户 ID）。
     请求参数（JSON）：
         dish_id: 菜品 ID（必填）。
-        user_id: 评价用户 ID（必填，UUID）。
         rating: 星级评分（必填，1-5）。
         comment: 评论内容（必填）。
     返回说明：返回创建成功的评价记录。
@@ -59,7 +61,7 @@ def create_review():
     try:
         review = service.create_review(
             dish_id=data.get('dish_id', ''),
-            user_id=data.get('user_id', ''),
+            user_id=g.user_id,
             rating=float(data.get('rating', 0)),
             comment=data.get('comment', ''),
         )
