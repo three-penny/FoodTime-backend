@@ -83,5 +83,46 @@ class DiningDisplayRepository:
             {"avoid_votes": Dish.avoid_votes + 1},
             synchronize_session=False
         )
-        db.session.commit()
+        return result > 0
+
+    def create_canteen(self, **kwargs) -> Canteen:
+        canteen = Canteen(**kwargs)
+        db.session.add(canteen)
+        db.session.flush()
+        return canteen
+
+    def update_canteen(self, canteen_id: str, **kwargs) -> bool:
+        result = db.session.query(Canteen).filter(Canteen.id == canteen_id).update(kwargs, synchronize_session=False)
+        return result > 0
+
+    def delete_canteen(self, canteen_id: str) -> bool:
+        result = db.session.query(Canteen).filter(Canteen.id == canteen_id).delete()
+        return result > 0
+
+    def create_stall(self, **kwargs) -> Stall:
+        stall = Stall(**kwargs)
+        db.session.add(stall)
+        db.session.flush()
+        return stall
+
+    def update_stall(self, stall_id: str, **kwargs) -> bool:
+        result = db.session.query(Stall).filter(Stall.id == stall_id).update(kwargs, synchronize_session=False)
+        return result > 0
+
+    def delete_stall(self, stall_id: str) -> bool:
+        result = db.session.query(Stall).filter(Stall.id == stall_id).delete()
+        return result > 0
+
+    def create_dish(self, **kwargs) -> Dish:
+        dish = Dish(**kwargs)
+        db.session.add(dish)
+        db.session.flush()
+        return dish
+
+    def update_dish(self, dish_id: str, **kwargs) -> bool:
+        result = db.session.query(Dish).filter(Dish.id == dish_id).update(kwargs, synchronize_session=False)
+        return result > 0
+
+    def delete_dish(self, dish_id: str) -> bool:
+        result = db.session.query(Dish).filter(Dish.id == dish_id).delete()
         return result > 0
