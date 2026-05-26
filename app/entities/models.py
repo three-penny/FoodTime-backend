@@ -209,6 +209,19 @@ class Rant(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Message(db.Model):
+    __tablename__ = 'messages'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    tag = db.Column(db.String(50), nullable=False, default='通知')
+    time = db.Column(db.String(20), nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class DishSubmission(db.Model):
     """
     类职责：定义菜品提报实体模型。

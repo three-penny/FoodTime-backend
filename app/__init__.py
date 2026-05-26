@@ -54,12 +54,14 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     from app.routes.dining_routes import dining_bp
     from app.routes.rant_routes import rant_bp
     from app.routes.points_routes import points_bp
+    from app.routes.message_routes import message_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(submission_bp)
-    app.register_blueprint(review_bp)
     app.register_blueprint(dining_bp)
+    app.register_blueprint(review_bp)
     app.register_blueprint(rant_bp)
     app.register_blueprint(points_bp)
+    app.register_blueprint(message_bp)
 
 
     @app.before_request
