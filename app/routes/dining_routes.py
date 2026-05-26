@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request, g
+import os
+from flask import Blueprint, jsonify, request, g, send_from_directory, current_app
 from app.services.dining_display_service import DiningDisplayService
 from app.utils.auth_utils import login_required
 
@@ -89,3 +90,12 @@ def avoid_dish(dish_id):
     if not success:
         return jsonify({'code': 'DINING_404_002', 'message': '菜品不存在', 'trace_id': g.trace_id}), 404
     return jsonify({'code': 0, 'message': '操作成功', 'data': {}, 'trace_id': g.trace_id}), 200
+
+
+@dining_bp.get('/uploads/<folder>/<filename>')
+def serve_upload(folder, filename):
+    allowed_folders = {'canteen_img', 'dish_img', 'stall_img', 'submission_img'}
+    if folder not in allowed_folders:
+        return jsonify({'code': 'DINING_400_001', 'message': '不允许的目录', 'trace_id': g.trace_id}), 400
+    data_dir = os.path.join(current_app.root_path, '..', 'data')
+    return send_from_directory(os.path.join(data_dir, folder), filename)
