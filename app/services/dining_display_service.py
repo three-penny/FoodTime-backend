@@ -94,24 +94,20 @@ class DiningDisplayService:
         return [self._canteen_to_dict(c) for c in canteens]
 
     def get_canteen_by_id(self, canteen_id):
-        canteens = self.dining_repo.get_all_canteens()
-        for c in canteens:
-            if c.id == canteen_id:
-                return self._canteen_to_dict(c)
-        return None
+        from app.entities.models import Canteen
+        from app.extensions import db
+        canteen = db.session.query(Canteen).filter_by(id=canteen_id).first()
+        if canteen is None:
+            return None
+        return self._canteen_to_dict(canteen)
 
     def get_canteen_spots(self):
-        spot_ids = [
-            'xueyi', 'minghu', 'dongkuai', 'xueer', 'qingzhen',
-            'xuesi', 'liuyuan', 'jiaogong', 'dongqu', 'yimin',
-        ]
-        canteens = self.dining_repo.get_all_canteens()
-        canteen_map = {c.id: c for c in canteens}
+        from app.entities.models import Canteen
+        from app.extensions import db
+        canteens = db.session.query(Canteen).order_by(Canteen.rating.desc()).all()
         spots = []
-        for idx, cid in enumerate(spot_ids):
-            c = canteen_map.get(cid)
-            if c:
-                spots.append(self._canteen_spot_to_dict(c, idx + 1))
+        for idx, c in enumerate(canteens):
+            spots.append(self._canteen_spot_to_dict(c, idx + 1))
         return spots
 
     def get_rankings(self):
