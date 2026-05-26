@@ -5,6 +5,7 @@
 创建时间：2026-05-23
 """
 import os
+import shutil
 import uuid
 import logging
 from werkzeug.utils import secure_filename
@@ -133,22 +134,112 @@ class DishSubmissionService:
         return [self._to_dict(s) for s in submissions]
 
     def audit_submission(self, submission_id: str, status: str, audit_reason: str, auditor_account: str) -> bool:
-        """审核菜品提报工单。"""
+        """审核菜品提报工单。审核通过时自动创建对应菜品记录。"""
         if status not in ('approved', 'rejected'):
             raise ValueError('审核状态只能是 approved 或 rejected。')
         if not audit_reason or not audit_reason.strip():
             raise ValueError('审核意见不能为空。')
-        success = self.repository.update_audit_result(
-            submission_id=submission_id,
-            status=status,
-            audit_reason=audit_reason.strip(),
-            auditor_account=auditor_account,
-        )
-        if not success:
+
+        from app.entities.models import DishSubmission, Canteen, Stall, Dish
+
+        submission = db.session.query(DishSubmission).filter_by(id=submission_id).first()
+        if not submission:
             raise ValueError('提报记录不存在。')
-        from app.extensions import db
+
+        submission.status = status
+        submission.audit_reason = audit_reason.strip()
+        submission.auditor_account = auditor_account
+
+        if status == 'approved':
+            self._create_dish_from_submission(submission)
+
         db.session.commit()
         return True
+
+    def _create_dish_from_submission(self, submission) -> None:
+        """审核通过时将投稿数据写入正式菜品表。"""
+        from app.entities.models import Canteen, Stall, Dish
+
+        canteen = db.session.query(Canteen).filter(
+            Canteen.name == submission.canteen_name
+        ).first()
+        if not canteen:
+            logger.warning('未找到食堂 "%s"，跳过菜品创建', submission.canteen_name)
+            return
+
+        stall_id = self._resolve_stall_id(canteen.id, submission.stall_name)
+        dish_id = f'{canteen.id}-{submission.dish_name}'
+
+        existing = db.session.query(Dish).filter_by(id=dish_id).first()
+        if existing:
+            logger.info('菜品 "%s" 已存在，跳过创建', dish_id)
+            return
+
+        dish_image_url = self._migrate_dish_image(submission)
+
+        new_dish = Dish(
+            id=dish_id,
+            stall_id=stall_id,
+            canteen_id=canteen.id,
+            name=submission.dish_name,
+            image_url=dish_image_url,
+            price=submission.price,
+            rating=0.0,
+            description=submission.description or '',
+            value_note='',
+            tags=submission.tags or [],
+            recommend_votes=0,
+            avoid_votes=0,
+        )
+        db.session.add(new_dish)
+        logger.info('审核通过：已创建菜品 "%s" (canteen=%s, stall=%s)', dish_id, canteen.id, stall_id)
+
+    def _resolve_stall_id(self, canteen_id: str, stall_name: str) -> str:
+        """查找或创建档口，返回档口 ID。"""
+        from app.entities.models import Stall
+
+        stall = db.session.query(Stall).filter(
+            Stall.canteen_id == canteen_id,
+            Stall.name == stall_name,
+        ).first()
+        if stall:
+            return stall.id
+
+        stall_id = f'{canteen_id}-{stall_name}'
+        new_stall = Stall(
+            id=stall_id,
+            canteen_id=canteen_id,
+            name=stall_name,
+            avg_price='',
+            best_time='',
+            summary=f'用户投稿创建的档口：{stall_name}',
+        )
+        db.session.add(new_stall)
+        db.session.flush()
+        logger.info('自动创建档口 "%s" (id=%s)', stall_name, stall_id)
+        return stall_id
+
+    def _migrate_dish_image(self, submission) -> str:
+        """将投稿图片复制到正式菜品图片目录，返回文件名。"""
+        if not submission.image_url:
+            return ''
+
+        src_dir = current_app.config['SUBMISSION_IMG_FOLDER']
+        dst_dir = current_app.config['DISH_IMG_FOLDER']
+        src_path = os.path.join(src_dir, submission.image_url)
+        ext = submission.image_url.rsplit('.', 1)[-1] if '.' in submission.image_url else 'jpg'
+        new_name = f'{uuid.uuid4().hex}.{ext}'
+        dst_path = os.path.join(dst_dir, new_name)
+
+        try:
+            os.makedirs(dst_dir, exist_ok=True)
+            if os.path.isfile(src_path):
+                shutil.copy2(src_path, dst_path)
+                logger.info('图片已迁移: %s -> %s', src_path, dst_path)
+            return new_name
+        except OSError as e:
+            logger.warning('图片迁移失败，保留原路径: %s', e)
+            return submission.image_url
 
     def _to_dict(self, submission) -> dict:
         return {
