@@ -63,6 +63,8 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     app.register_blueprint(points_bp)
     app.register_blueprint(message_bp)
 
+    _setup_scheduler(app)
+
 
     @app.before_request
     def ensure_trace_id():
@@ -115,3 +117,29 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
         }), 200
 
     return app
+
+
+def _setup_scheduler(app):
+    """配置 APScheduler 定时任务（每日/每周推荐刷新）。"""
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        from app.services.recommendation_service import refresh_daily_recommendations, refresh_weekly_recommendations
+
+        scheduler = BackgroundScheduler()
+
+        def daily_wrapper():
+            with app.app_context():
+                refresh_daily_recommendations()
+
+        def weekly_wrapper():
+            with app.app_context():
+                refresh_weekly_recommendations()
+
+        scheduler.add_job(daily_wrapper, CronTrigger(hour=0, minute=0, timezone='Asia/Shanghai'), id='daily_rec')
+        scheduler.add_job(weekly_wrapper, CronTrigger(day_of_week='sun', hour=0, minute=0, timezone='Asia/Shanghai'), id='weekly_rec')
+
+        scheduler.start()
+        app.logger.info('[Scheduler] 定时任务已启动')
+    except Exception as e:
+        app.logger.warning('[Scheduler] 定时任务启动失败: %s', e)

@@ -212,6 +212,41 @@ class Rant(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class DailyRecommendation(db.Model):
+    __tablename__ = 'daily_recommendations'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    dish_id = db.Column(db.String(100), nullable=False)
+    canteen_id = db.Column(db.String(50), nullable=False)
+    dish_name = db.Column(db.String(100), nullable=False)
+    canteen_name = db.Column(db.String(100), nullable=False)
+    stall_name = db.Column(db.String(100))
+    price = db.Column(db.Float)
+    rating = db.Column(db.Float, default=0.0)
+    image_url = db.Column(db.String(255))
+    tags = db.Column(db.JSON)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class WeeklyRecommendation(db.Model):
+    __tablename__ = 'weekly_recommendations'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    dish_id = db.Column(db.String(100), nullable=False)
+    canteen_id = db.Column(db.String(50), nullable=False)
+    dish_name = db.Column(db.String(100), nullable=False)
+    canteen_name = db.Column(db.String(100), nullable=False)
+    stall_name = db.Column(db.String(100))
+    price = db.Column(db.Float)
+    rating = db.Column(db.Float, default=0.0)
+    image_url = db.Column(db.String(255))
+    tags = db.Column(db.JSON)
+    review_count = db.Column(db.Integer, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Message(db.Model):
     __tablename__ = 'messages'
 

@@ -196,6 +196,20 @@ def delete_dish(dish_id):
     return jsonify({'code': 0, 'message': '删除成功', 'data': {}, 'trace_id': g.trace_id}), 200
 
 
+@dining_bp.get('/recommendations/daily')
+def get_daily_recommendations():
+    from app.services.recommendation_service import get_daily_recommendations as get_daily
+    data = get_daily()
+    return jsonify({'code': 0, 'message': 'success', 'data': data, 'trace_id': g.trace_id}), 200
+
+
+@dining_bp.get('/recommendations/weekly')
+def get_weekly_recommendations():
+    from app.services.recommendation_service import get_weekly_recommendations as get_weekly
+    data = get_weekly()
+    return jsonify({'code': 0, 'message': 'success', 'data': data, 'trace_id': g.trace_id}), 200
+
+
 @dining_bp.get('/uploads/<folder>/<filename>')
 def serve_upload(folder, filename):
     allowed_folders = {'canteen_img', 'dish_img', 'stall_img', 'submission_img'}
