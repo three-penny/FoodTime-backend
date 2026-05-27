@@ -168,7 +168,7 @@ class Review(db.Model):
     """
     类职责：定义菜品评价实体模型。
     实体业务含义：用户对特定菜品的评分与留言。
-    关键字段：rating, comment。
+    关键字段：rating, comment, status。
     关联关系：关联 1 个菜品 (Dish)，关联 1 个用户 (User)。
     创建时间：2026-05-19
     """
@@ -179,6 +179,9 @@ class Review(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     rating = db.Column(db.Float, nullable=False)
     comment = db.Column(db.Text, nullable=False)
+
+    status = db.Column(db.String(20), default='pending')
+    audit_reason = db.Column(db.Text)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

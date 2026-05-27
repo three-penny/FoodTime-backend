@@ -48,7 +48,7 @@ class ReviewRepository:
 
     def get_reviews_by_dish(self, dish_id: str) -> list[Review]:
         """
-        功能描述：根据菜品 ID 查询所有评价（按创建时间倒序）。
+        功能描述：根据菜品 ID 查询所有已审核通过的公开评价（按创建时间倒序）。
         参数说明：
             dish_id: 目标菜品的唯一标识。
         返回值说明：
@@ -56,7 +56,32 @@ class ReviewRepository:
         """
         return (
             db.session.query(Review)
-            .filter(Review.dish_id == dish_id)
+            .filter(Review.dish_id == dish_id, Review.status == 'approved')
             .order_by(Review.created_at.desc())
             .all()
         )
+
+    def get_all_reviews(self) -> list[Review]:
+        """查询全部评价（管理员审核台用，按创建时间倒序）。"""
+        return (
+            db.session.query(Review)
+            .order_by(Review.created_at.desc())
+            .all()
+        )
+
+    def update_review_audit_result(
+        self,
+        review_id: str,
+        status: str,
+        audit_reason: str,
+    ) -> bool:
+        """更新评价审核结果。"""
+        result = (
+            db.session.query(Review)
+            .filter(Review.id == review_id)
+            .update(
+                {'status': status, 'audit_reason': audit_reason},
+                synchronize_session=False,
+            )
+        )
+        return result > 0

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReviewService:
-    """菜品点评业务服务，编排评价创建与查询流程。"""
+    """菜品点评业务服务，编排评价创建、查询与审核流程。"""
 
     def __init__(self, repository: ReviewRepository | None = None, points_service=None):
         self.repository = repository or ReviewRepository()
@@ -26,7 +26,7 @@ class ReviewService:
         comment: str,
     ) -> dict:
         """
-        创建菜品评价。
+        创建菜品评价（提交后状态为 pending，需管理员审核）。
         参数说明：
             dish_id: 菜品 ID（必填）。
             user_id: 评价用户 ID（必填，UUID）。
@@ -63,19 +63,72 @@ class ReviewService:
         except Exception:
             pass
 
-        return {
-            'id': review.id,
-            'dish_id': review.dish_id,
-            'user_id': review.user_id,
-            'rating': review.rating,
-            'comment': review.comment,
-            'created_at': review.created_at.isoformat() if review.created_at else None,
-        }
+        return self._to_dict(review)
 
     def get_reviews_by_dish(self, dish_id: str) -> list[dict]:
-        """查询指定菜品的所有评价（按创建时间倒序）。"""
+        """查询指定菜品的已审核通过评价（按创建时间倒序）。"""
         reviews = self.repository.get_reviews_by_dish(dish_id)
         return [self._to_dict(r) for r in reviews]
+
+    def get_all_reviews(self) -> list[dict]:
+        """查询全部评价（管理员审核台使用），含用户昵称和菜品路径信息。"""
+        reviews = self.repository.get_all_reviews()
+        if not reviews:
+            return []
+
+        from app.extensions import db
+        from app.entities.models import User, Dish, Stall, Canteen
+
+        user_ids = list(set(r.user_id for r in reviews))
+        dish_ids = list(set(r.dish_id for r in reviews))
+
+        users = {u.id: u for u in db.session.query(User).filter(User.id.in_(user_ids)).all()}
+        dishes = {d.id: d for d in db.session.query(Dish).filter(Dish.id.in_(dish_ids)).all()}
+        stalls = {s.id: s for s in db.session.query(Stall).all()}
+        canteens = {c.id: c for c in db.session.query(Canteen).all()}
+
+        result = []
+        for r in reviews:
+            d = self._to_dict(r)
+            u = users.get(r.user_id)
+            d['reviewer_nickname'] = u.nickname if u else ''
+            dish = dishes.get(r.dish_id)
+            if dish:
+                d['dish_name'] = dish.name
+                stall = stalls.get(dish.stall_id)
+                d['stall_name'] = stall.name if stall else ''
+                canteen = canteens.get(dish.canteen_id)
+                d['canteen_name'] = canteen.name if canteen else ''
+            else:
+                d['dish_name'] = ''
+                d['stall_name'] = ''
+                d['canteen_name'] = ''
+            result.append(d)
+        return result
+
+    def audit_review(self, review_id: str, status: str, audit_reason: str) -> bool:
+        """
+        审核评价（通过/驳回）。
+        参数说明：
+            review_id: 评价 ID。
+            status: 审核结果（approved / rejected）。
+            audit_reason: 审核意见。
+        """
+        if status not in ('approved', 'rejected'):
+            raise ValueError('审核状态只能是 approved 或 rejected。')
+        if not audit_reason or not audit_reason.strip():
+            raise ValueError('审核意见不能为空。')
+
+        success = self.repository.update_review_audit_result(
+            review_id=review_id,
+            status=status,
+            audit_reason=audit_reason.strip(),
+        )
+        if not success:
+            raise ValueError('评价记录不存在。')
+        from app.extensions import db
+        db.session.commit()
+        return True
 
     def _to_dict(self, review) -> dict:
         return {
@@ -84,6 +137,8 @@ class ReviewService:
             'user_id': review.user_id,
             'rating': review.rating,
             'comment': review.comment,
+            'status': review.status or 'pending',
+            'audit_reason': review.audit_reason or '',
             'created_at': review.created_at.isoformat() if review.created_at else None,
             'updated_at': review.updated_at.isoformat() if review.updated_at else None,
         }

@@ -76,7 +76,7 @@ class DiningDisplayService:
             'recommendVotes': dish.recommend_votes or 0,
             'avoidVotes': dish.avoid_votes or 0,
             'comment': dish.description or '',
-            'stall': dish.value_note or '',
+            'stall': dish.stall.name if hasattr(dish, 'stall') and dish.stall else (dish.value_note or ''),
         }
 
     def _review_to_dict(self, review):
@@ -87,6 +87,7 @@ class DiningDisplayService:
             'comment': review.comment,
             'reviewer': '匿名同学',
             'createdAt': review.created_at.strftime('%Y-%m-%d %H:%M') if review.created_at else '',
+            'status': review.status or 'pending',
         }
 
     def get_all_canteens(self):
@@ -158,7 +159,8 @@ class DiningDisplayService:
         from app.entities.models import Review as ReviewModel
         from app.extensions import db
         reviews = db.session.query(ReviewModel).filter(
-            ReviewModel.dish_id == dish_id
+            ReviewModel.dish_id == dish_id,
+            ReviewModel.status == 'approved'
         ).order_by(ReviewModel.created_at.desc()).all()
         return [self._review_to_dict(r) for r in reviews]
 
