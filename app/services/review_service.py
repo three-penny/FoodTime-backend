@@ -128,7 +128,70 @@ class ReviewService:
             raise ValueError('评价记录不存在。')
         from app.extensions import db
         db.session.commit()
+
+        if status == 'approved':
+            from app.entities.models import Review, Dish
+            review = db.session.query(Review).filter(Review.id == review_id).first()
+            if review:
+                self._recalc_dish_rating(review.dish_id)
+                dish = db.session.query(Dish).filter(Dish.id == review.dish_id).first()
+                if dish:
+                    self._recalc_canteen_rating(dish.canteen_id)
+
         return True
+
+    def _recalc_dish_rating(self, dish_id: str) -> None:
+        """根据最近 100 条已审核通过的评分重新计算菜品 rating。"""
+        from app.extensions import db
+        from app.entities.models import Review, Dish
+        from sqlalchemy import func
+
+        subq = (
+            db.session.query(Review.rating)
+            .filter(Review.dish_id == dish_id, Review.status == 'approved')
+            .order_by(Review.created_at.desc())
+            .limit(100)
+            .subquery()
+        )
+        avg = db.session.query(func.avg(subq.c.rating)).scalar()
+        new_rating = round(float(avg), 1) if avg else 0.0
+        db.session.query(Dish).filter(Dish.id == dish_id).update(
+            {'rating': new_rating}, synchronize_session=False
+        )
+        db.session.commit()
+
+    def _recalc_canteen_rating(self, canteen_id: str) -> None:
+        """根据该餐厅所有菜品最近 1000 条已审核通过的评分重新计算食堂 rating。"""
+        from app.extensions import db
+        from app.entities.models import Review, Dish, Canteen
+        from sqlalchemy import func
+
+        canteen_dish_ids = [
+            d.id for d in db.session.query(Dish.id).filter(Dish.canteen_id == canteen_id).all()
+        ]
+        if not canteen_dish_ids:
+            db.session.query(Canteen).filter(Canteen.id == canteen_id).update(
+                {'rating': 0.0}, synchronize_session=False
+            )
+            db.session.commit()
+            return
+
+        subq = (
+            db.session.query(Review.rating)
+            .filter(
+                Review.dish_id.in_(canteen_dish_ids),
+                Review.status == 'approved',
+            )
+            .order_by(Review.created_at.desc())
+            .limit(1000)
+            .subquery()
+        )
+        avg = db.session.query(func.avg(subq.c.rating)).scalar()
+        new_rating = round(float(avg), 1) if avg else 0.0
+        db.session.query(Canteen).filter(Canteen.id == canteen_id).update(
+            {'rating': new_rating}, synchronize_session=False
+        )
+        db.session.commit()
 
     def _to_dict(self, review) -> dict:
         return {
