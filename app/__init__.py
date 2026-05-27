@@ -7,6 +7,7 @@
 
 import uuid
 from flask import Flask, g, request, jsonify
+from werkzeug.exceptions import HTTPException
 from config import DevelopmentConfig
 from app.extensions import db, migrate
 
@@ -29,6 +30,9 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     migrate.init_app(app, db)
 
     from app.entities import models
+    from app.routes.auth import auth_bp
+
+    app.register_blueprint(auth_bp)
 
 
     @app.before_request
@@ -51,6 +55,14 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
         """
 
         trace_id = getattr(g, 'trace_id', '6f6f6474696d65')
+
+        if isinstance(error, HTTPException):
+            response_body = {
+                'code': f'HTTP_{error.code}',
+                'message': error.description,
+                'trace_id': trace_id
+            }
+            return jsonify(response_body), error.code
 
         response_body = {
             'code': 'SYSTEM_500_001',
