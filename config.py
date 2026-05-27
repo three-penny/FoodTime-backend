@@ -22,7 +22,18 @@ class Config:
     设计说明：安全密钥等高危信息默认具备兜底策略，生产环境强制重写。
     """
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'foodtime-super-secret-key'
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'foodtime-jwt-secret-key-must-be-32bytes!'
+    JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
+    ADMIN_INVITE_CODE = os.environ.get('ADMIN_INVITE_CODE') or 'ABCDEF'
 
+
+    CANTEEN_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'canteen_img')
+    STALL_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'stall_img')
+    DISH_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'dish_img')
+    SUBMISSION_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'submission_img')
+    DEFAULT_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'default_img')
+    DEFAULT_IMG_URL = '/api/v1/uploads/default_img/default.jpg'
+    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

@@ -127,6 +127,7 @@ class User(db.Model):
 
     id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
     account = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(120), unique=True, nullable=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     nickname = db.Column(db.String(50), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user')
@@ -167,7 +168,7 @@ class Review(db.Model):
     """
     类职责：定义菜品评价实体模型。
     实体业务含义：用户对特定菜品的评分与留言。
-    关键字段：rating, comment。
+    关键字段：rating, comment, status。
     关联关系：关联 1 个菜品 (Dish)，关联 1 个用户 (User)。
     创建时间：2026-05-19
     """
@@ -178,6 +179,9 @@ class Review(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     rating = db.Column(db.Float, nullable=False)
     comment = db.Column(db.Text, nullable=False)
+
+    status = db.Column(db.String(20), default='pending')
+    audit_reason = db.Column(db.Text)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -203,6 +207,54 @@ class Rant(db.Model):
     audit_reason = db.Column(db.Text)
 
     auditor_account = db.Column(db.String(50), db.ForeignKey('users.account'), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DailyRecommendation(db.Model):
+    __tablename__ = 'daily_recommendations'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    dish_id = db.Column(db.String(100), nullable=False)
+    canteen_id = db.Column(db.String(50), nullable=False)
+    dish_name = db.Column(db.String(100), nullable=False)
+    canteen_name = db.Column(db.String(100), nullable=False)
+    stall_name = db.Column(db.String(100))
+    price = db.Column(db.Float)
+    rating = db.Column(db.Float, default=0.0)
+    image_url = db.Column(db.String(255))
+    tags = db.Column(db.JSON)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class WeeklyRecommendation(db.Model):
+    __tablename__ = 'weekly_recommendations'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    dish_id = db.Column(db.String(100), nullable=False)
+    canteen_id = db.Column(db.String(50), nullable=False)
+    dish_name = db.Column(db.String(100), nullable=False)
+    canteen_name = db.Column(db.String(100), nullable=False)
+    stall_name = db.Column(db.String(100))
+    price = db.Column(db.Float)
+    rating = db.Column(db.Float, default=0.0)
+    image_url = db.Column(db.String(255))
+    tags = db.Column(db.JSON)
+    review_count = db.Column(db.Integer, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    tag = db.Column(db.String(50), nullable=False, default='通知')
+    time = db.Column(db.String(20), nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

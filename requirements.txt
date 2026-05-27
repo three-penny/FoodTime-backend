@@ -6,3 +6,5 @@ langchain-openai>=0.3.16
 openai>=1.76.0
 python-dotenv>=1.0.1
 redis>=5.2.1
+PyJWT>=2.10.0
+APScheduler>=3.11.0

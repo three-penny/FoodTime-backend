@@ -42,6 +42,46 @@ class ReviewRepository:
             comment=comment
         )
         db.session.add(new_review)
-        # 执行 flush 以便让数据库提前生成该行的唯一主键 id 并映射回对象，但不提交事务
         db.session.flush()
+        db.session.commit()
         return new_review
+
+    def get_reviews_by_dish(self, dish_id: str) -> list[Review]:
+        """
+        功能描述：根据菜品 ID 查询所有已审核通过的公开评价（按创建时间倒序）。
+        参数说明：
+            dish_id: 目标菜品的唯一标识。
+        返回值说明：
+            返回符合条件的 Review 模型对象列表。
+        """
+        return (
+            db.session.query(Review)
+            .filter(Review.dish_id == dish_id, Review.status == 'approved')
+            .order_by(Review.created_at.desc())
+            .all()
+        )
+
+    def get_all_reviews(self) -> list[Review]:
+        """查询全部评价（管理员审核台用，按创建时间倒序）。"""
+        return (
+            db.session.query(Review)
+            .order_by(Review.created_at.desc())
+            .all()
+        )
+
+    def update_review_audit_result(
+        self,
+        review_id: str,
+        status: str,
+        audit_reason: str,
+    ) -> bool:
+        """更新评价审核结果。"""
+        result = (
+            db.session.query(Review)
+            .filter(Review.id == review_id)
+            .update(
+                {'status': status, 'audit_reason': audit_reason},
+                synchronize_session=False,
+            )
+        )
+        return result > 0

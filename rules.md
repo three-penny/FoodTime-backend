@@ -427,7 +427,63 @@ bandit -r app
 exit $LASTEXITCODE
 ```
 
-## 12. 参考实现示例
+## 12. Git 提交日志记录
+
+每次 `git commit` 后，必须在 `docs/gitLog/` 目录下创建一份提交日志文件，用于多人协作时发生合并冲突后快速复核功能点，避免丢失代码。
+
+### 12.1 文件命名
+
+格式：`<BranchName>_<Time>.md`
+
+- `BranchName`：当前分支名，如 `feat-dish-upload`、`fix-auth-token`
+- `Time`：提交时间，格式为 `YYYYMMDD_HHmmss`，如 `20260525_143022`
+
+示例：`feat-submission-audit_20260525_143022.md`
+
+### 12.2 日志内容规范
+
+每份日志文件必须包含以下字段：
+
+```markdown
+# Git 提交日志
+
+## 基本信息
+- **分支名**：feat-submission-audit
+- **提交时间**：2026-05-25 14:30:22
+- **提交者**：naph130
+- **Commit Hash**：a1b2c3d
+
+## 提交信息
+fix: 修复菜品提报审核驳回 API 未调用的问题
+
+## 变更文件清单
+| 文件路径 | 变更类型 | 说明 |
+|---------|---------|------|
+| app/repositories/rant_repository.py | 修改 | 移除 create_rant 内部冗余 commit |
+| app/services/rant_service.py | 无需变更 | 事务控制已由 Service 层接管 |
+| app/entities/models.py | 无需变更 | 模型定义未变 |
+
+## 变更详情
+1. 移除 `rant_repository.py` 中 `create_rant` 方法的内部 `db.session.commit()`。
+2. 统一事务提交职责到 Service 层，与 `dish_submission_repository` 保持一致模式。
+
+## 影响范围
+- 影响模块：吐槽墙创建
+- 影响接口：POST /api/v1/rants
+- 向前兼容：是，功能不受影响
+
+## 合并冲突处理指引
+- 若 `rant_repository.py` 发生冲突，注意 Service 层调用后必须有显式的 `db.session.commit()` 或由外层事务管理器统一提交。
+```
+
+### 12.3 执行要求
+
+- 每次 `git commit` 后必须立即创建对应日志文件，不得推迟或合并多日提交。
+- 日志文件命名不规范、内容缺失关键字段的，Code Review 阶段应直接退回。
+- `docs/gitLog/` 目录必须纳入版本控制，跟随代码一并提交推送。
+- 禁止修改他人的日志文件，如需补充可在文件末尾追加 `## 补充说明` 段落并署名。
+
+## 13. 参考实现示例
 
 Controller 示例：
 
@@ -477,7 +533,7 @@ class OrderRepository:
         }
 ```
 
-## 13. 项目架构规范
+## 14. 项目架构规范
 
 本章节用于补充后端工程的架构要求，确保 `FoodTime-backend` 在 Flask 技术栈下依然具备良好的分层设计、可测试性、可扩展性、可部署性与可观测性。
 
@@ -601,7 +657,7 @@ app/
 - 每个请求应具备 `trace_id` 并进入统一日志链路。
 - 核心外部依赖如 Redis、OpenAI 调用必须有超时、重试或失败降级策略。
 
-## 14. 类与方法注释规范
+## 15. 类与方法注释规范
 
 本章节定义后端代码的注释标准，适用于控制器、服务类、仓储类、模型类、工具类以及公共函数，确保代码具备工程级文档支持。
 
@@ -749,7 +805,7 @@ pydocstyle app
 pytest --cov=app --cov-report=term-missing
 ```
 
-## 15. 执行要求
+## 16. 执行要求
 
 - 新增接口前必须先确认资源命名、状态码和响应格式是否符合规范
 - 所有数据库变更必须附带迁移脚本

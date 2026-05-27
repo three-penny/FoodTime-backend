@@ -69,6 +69,21 @@ class DishSubmissionRepository:
         """
         return db.session.query(DishSubmission).filter(DishSubmission.status == status).all()
 
+    def get_submissions_by_account(self, account: str) -> list[DishSubmission]:
+        """
+        功能描述：根据提交者账号查询所有提报记录（按创建时间倒序）。
+        参数说明：
+            account: 提交者账号。
+        返回值说明：
+            返回该用户的所有提报记录列表。
+        """
+        return (
+            db.session.query(DishSubmission)
+            .filter(DishSubmission.submitter_account == account)
+            .order_by(DishSubmission.created_at.desc())
+            .all()
+        )
+
     def update_audit_result(
         self,
         submission_id: str,
@@ -96,4 +111,5 @@ class DishSubmissionRepository:
             },
             synchronize_session=False
         )
+        db.session.commit()
         return result > 0

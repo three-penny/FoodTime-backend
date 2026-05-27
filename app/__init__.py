@@ -5,8 +5,10 @@
 创建时间：2026-05-19
 """
 
+import os
 import uuid
-from flask import Flask, g, request, jsonify
+from flask import Flask, g, request, jsonify, send_from_directory
+from werkzeug.exceptions import HTTPException
 from config import DevelopmentConfig
 from app.extensions import db, migrate
 
@@ -30,6 +32,39 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
 
     from app.entities import models
 
+    @app.route('/api/v1/images/canteen/<path:filename>')
+    def serve_canteen_image(filename):
+        return send_from_directory(app.config['CANTEEN_IMG_FOLDER'], filename)
+
+    @app.route('/api/v1/images/stall/<path:filename>')
+    def serve_stall_image(filename):
+        return send_from_directory(app.config['STALL_IMG_FOLDER'], filename)
+
+    @app.route('/api/v1/images/dish/<path:filename>')
+    def serve_dish_image(filename):
+        return send_from_directory(app.config['DISH_IMG_FOLDER'], filename)
+
+    @app.route('/api/v1/images/submission/<path:filename>')
+    def serve_submission_image(filename):
+        return send_from_directory(app.config['SUBMISSION_IMG_FOLDER'], filename)
+
+    from app.routes.auth_routes import auth_bp
+    from app.routes.dish_submission_routes import submission_bp
+    from app.routes.review_routes import review_bp
+    from app.routes.dining_routes import dining_bp
+    from app.routes.rant_routes import rant_bp
+    from app.routes.points_routes import points_bp
+    from app.routes.message_routes import message_bp
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(submission_bp)
+    app.register_blueprint(dining_bp)
+    app.register_blueprint(review_bp)
+    app.register_blueprint(rant_bp)
+    app.register_blueprint(points_bp)
+    app.register_blueprint(message_bp)
+
+    _setup_scheduler(app)
+
 
     @app.before_request
     def ensure_trace_id():
@@ -49,6 +84,9 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
             error: 触发的原始 Python 异常对象。
         对齐规范：rules.md 第 4.2 节全局异常拦截与标准错误码。
         """
+        # HTTP 异常（404 等）交由 Flask 内置处理，避免图片服务等端点返回 500 JSON
+        if isinstance(error, HTTPException):
+            return error
 
         trace_id = getattr(g, 'trace_id', '6f6f6474696d65')
 
@@ -79,3 +117,29 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
         }), 200
 
     return app
+
+
+def _setup_scheduler(app):
+    """配置 APScheduler 定时任务（每日/每周推荐刷新）。"""
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        from app.services.recommendation_service import refresh_daily_recommendations, refresh_weekly_recommendations
+
+        scheduler = BackgroundScheduler()
+
+        def daily_wrapper():
+            with app.app_context():
+                refresh_daily_recommendations()
+
+        def weekly_wrapper():
+            with app.app_context():
+                refresh_weekly_recommendations()
+
+        scheduler.add_job(daily_wrapper, CronTrigger(hour=0, minute=0, timezone='Asia/Shanghai'), id='daily_rec')
+        scheduler.add_job(weekly_wrapper, CronTrigger(day_of_week='sun', hour=0, minute=0, timezone='Asia/Shanghai'), id='weekly_rec')
+
+        scheduler.start()
+        app.logger.info('[Scheduler] 定时任务已启动')
+    except Exception as e:
+        app.logger.warning('[Scheduler] 定时任务启动失败: %s', e)
