@@ -1,5 +1,10 @@
+from flask import current_app
 from app.repositories.dining_display_repository import DiningDisplayRepository
 from app.repositories.review_repository import ReviewRepository
+
+
+def _img(url):
+    return url or current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
 
 
 class DiningDisplayService:
@@ -12,7 +17,7 @@ class DiningDisplayService:
             'id': canteen.id,
             'name': canteen.name,
             'shortName': canteen.short_name,
-            'imageUrl': canteen.image_url,
+            'imageUrl': _img(canteen.image_url),
             'rating': canteen.rating,
             'location': canteen.location,
             'openHours': canteen.open_hours,
@@ -54,7 +59,7 @@ class DiningDisplayService:
         return {
             'id': stall.id,
             'name': stall.name,
-            'imageUrl': stall.image_url,
+            'imageUrl': _img(stall.image_url),
             'canteenId': stall.canteen_id,
             'avgPrice': stall.avg_price,
             'bestTime': stall.best_time,
@@ -66,7 +71,7 @@ class DiningDisplayService:
         return {
             'id': dish.id,
             'name': dish.name,
-            'imageUrl': dish.image_url,
+            'imageUrl': _img(dish.image_url),
             'canteenId': dish.canteen_id,
             'price': dish.price,
             'rating': dish.rating,

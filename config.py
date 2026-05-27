@@ -31,6 +31,8 @@ class Config:
     STALL_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'stall_img')
     DISH_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'dish_img')
     SUBMISSION_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'submission_img')
+    DEFAULT_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'default_img')
+    DEFAULT_IMG_URL = '/api/v1/uploads/default_img/default.jpg'
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False

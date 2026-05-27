@@ -80,7 +80,7 @@ class DishSubmissionService:
         if not submitter_account:
             raise ValueError('提交者账号不能为空。')
 
-        image_url = ''
+        image_url = current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
         if image_file and image_file.filename:
             if not self._allowed_file(image_file.filename):
                 raise ValueError('不支持的图片格式，仅支持 png、jpg、jpeg、gif、webp、bmp。')
