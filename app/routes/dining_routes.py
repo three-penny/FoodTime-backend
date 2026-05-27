@@ -198,7 +198,7 @@ def delete_dish(dish_id):
 
 @dining_bp.get('/uploads/<folder>/<filename>')
 def serve_upload(folder, filename):
-    allowed_folders = {'canteen_img', 'dish_img', 'stall_img', 'submission_img'}
+    allowed_folders = {'canteen_img', 'dish_img', 'stall_img', 'submission_img', 'default_img'}
     if folder not in allowed_folders:
         return jsonify({'code': 'DINING_400_001', 'message': '不允许的目录', 'trace_id': g.trace_id}), 400
     data_dir = os.path.join(current_app.root_path, '..', 'data')
