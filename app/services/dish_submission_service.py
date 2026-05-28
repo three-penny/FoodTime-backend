@@ -220,9 +220,12 @@ class DishSubmissionService:
         return stall_id
 
     def _migrate_dish_image(self, submission) -> str:
-        """将投稿图片复制到正式菜品图片目录，返回文件名。"""
+        """将投稿图片复制到正式菜品图片目录，返回 API 可访问的 URL 路径。"""
         if not submission.image_url:
-            return ''
+            return current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
+
+        if submission.image_url.startswith('/'):
+            return submission.image_url
 
         src_dir = current_app.config['SUBMISSION_IMG_FOLDER']
         dst_dir = current_app.config['DISH_IMG_FOLDER']
@@ -236,19 +239,24 @@ class DishSubmissionService:
             if os.path.isfile(src_path):
                 shutil.copy2(src_path, dst_path)
                 logger.info('图片已迁移: %s -> %s', src_path, dst_path)
-            return new_name
+            return f'/api/v1/images/dish/{new_name}'
         except OSError as e:
-            logger.warning('图片迁移失败，保留原路径: %s', e)
-            return submission.image_url
+            logger.warning('图片迁移失败，使用默认图片: %s', e)
+            return current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
 
     def _to_dict(self, submission) -> dict:
+        image_url = submission.image_url or ''
+        if image_url and not image_url.startswith('/'):
+            image_url = f'/api/v1/uploads/submission_img/{image_url}'
+        if not image_url:
+            image_url = current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
         return {
             'id': submission.id,
             'dish_name': submission.dish_name,
             'canteen_name': submission.canteen_name,
             'stall_name': submission.stall_name,
             'price': submission.price,
-            'image_url': submission.image_url,
+            'image_url': image_url,
             'description': submission.description,
             'tags': submission.tags,
             'submitter_account': submission.submitter_account,

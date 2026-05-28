@@ -7,10 +7,52 @@
 
 import os
 import uuid
+import logging
 from flask import Flask, g, request, jsonify, send_from_directory
 from werkzeug.exceptions import HTTPException
+from sqlalchemy import inspect as sa_inspect
+from werkzeug.security import generate_password_hash
 from config import DevelopmentConfig
 from app.extensions import db, migrate
+
+logger = logging.getLogger(__name__)
+
+
+def _init_database(app):
+    """
+    功能描述：数据库自动初始化守卫。在应用首次启动时检测表结构是否存在，
+             若不存在则自动建表并插入默认管理员账号，确保核心功能开箱即用。
+    参数说明：
+        app: Flask 应用实例（需已完成配置加载与 db.init_app）。
+    """
+    with app.app_context():
+        inspector = sa_inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+
+        if not existing_tables:
+            logger.info('[DB Init] 数据库表不存在，正在自动创建...')
+            db.create_all()
+            logger.info('[DB Init] 所有表已创建完毕。')
+
+            from app.entities.models import User
+            admin_exists = User.query.filter_by(account='admin').first()
+            if not admin_exists:
+                logger.info('[DB Init] 正在创建默认管理员账号 (admin / 123456)...')
+                admin_user = User(
+                    account='admin',
+                    password_hash=generate_password_hash('123456'),
+                    nickname='审核管理员',
+                    role='admin',
+                    account_status='active',
+                    current_points=999,
+                    total_earned_points=999,
+                    total_used_points=0,
+                )
+                db.session.add(admin_user)
+                db.session.commit()
+                logger.info('[DB Init] 默认管理员账号创建成功。')
+        else:
+            logger.info('[DB Init] 数据库表已存在，跳过初始化。')
 
 
 def create_app(config_class=DevelopmentConfig) -> Flask:
@@ -31,6 +73,8 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     migrate.init_app(app, db)
 
     from app.entities import models
+
+    _init_database(app)
 
     @app.route('/api/v1/images/canteen/<path:filename>')
     def serve_canteen_image(filename):
@@ -89,6 +133,7 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
             return error
 
         trace_id = getattr(g, 'trace_id', '6f6f6474696d65')
+        app.logger.exception('未捕获异常 (trace_id=%s): %s', trace_id, error)
 
         response_body = {
             'code': 'SYSTEM_500_001',

@@ -411,10 +411,11 @@ SPECIFIC_DISHES = [
 ]
 
 DISH_IMAGE_MAPPING = {
-    '红烧牛肉面': '红烧牛肉面.jpg', '黑椒鸡腿饭': '黑胶鸡腿饭.png', '麻辣香锅': '煲仔饭.webp',
-    '番茄肥牛饭': '番茄肥牛饭.jpg', '鸡胸沙拉碗': '番茄肥牛饭.jpg', '香菇鸡肉饭': '黑胶鸡腿饭.png',
-    '酸汤米线': '酸汤米线.png', '藤椒鸡丝面': '酸汤米线.png', '牛肉煲仔饭': '煲仔饭.webp',
-    '宫保鸡丁饭': '黑胶鸡腿饭.png', '番茄鸡蛋面': '番茄肥牛饭.jpg', '酥皮鱼排饭': '煲仔饭.webp'
+    '红烧牛肉面': '红烧牛肉面.jpg',
+    '黑椒鸡腿饭': '黑胶鸡腿饭.png',
+    '番茄肥牛饭': '番茄肥牛饭.jpg',
+    '酸汤米线': '酸汤米线.png',
+    '牛肉煲仔饭': '煲仔饭.webp',
 }
 
 
@@ -532,7 +533,7 @@ def seed_data():
                         description=full_desc,
                         value_note=stall.name,
                         tags=[stall.name],
-                        image_url=DISH_IMAGE_MAPPING.get(dish_data['name'], '番茄肥牛饭.jpg')
+                        image_url=DISH_IMAGE_MAPPING.get(dish_data['name'])
                     )
                     db.session.add(dish)
 
@@ -574,7 +575,7 @@ def seed_data():
                     description=create_long_comment(s_dish['comment'], canteen_name, stall_name),
                     value_note=stall_name,
                     tags=["精选", "高分"],
-                    image_url=DISH_IMAGE_MAPPING.get(s_dish['name'], '番茄肥牛饭.jpg')
+                    image_url=DISH_IMAGE_MAPPING.get(s_dish['name'])
                 )
                 db.session.add(dish)
 

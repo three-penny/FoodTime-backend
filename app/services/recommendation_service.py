@@ -7,9 +7,14 @@
 import random
 import logging
 from datetime import datetime, timezone, timedelta
+from flask import current_app
 from app.extensions import db
 from app.entities.models import Dish, Canteen, Stall, Review, DailyRecommendation, WeeklyRecommendation
 from sqlalchemy import func
+
+
+def _img(url):
+    return url or current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +142,7 @@ def _daily_to_dict(item):
         'stall': item.stall_name,
         'price': item.price,
         'rating': item.rating,
-        'imageUrl': item.image_url,
+        'imageUrl': _img(item.image_url),
         'tags': item.tags or [],
     }
 
@@ -152,7 +157,7 @@ def _weekly_to_dict(item):
         'score': item.rating,
         'rating': item.rating,
         'price': item.price,
-        'imageUrl': item.image_url,
+        'imageUrl': _img(item.image_url),
         'stall': item.stall_name,
         'tags': item.tags or [],
         'reviewCount': item.review_count,

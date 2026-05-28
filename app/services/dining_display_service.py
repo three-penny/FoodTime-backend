@@ -44,7 +44,7 @@ class DiningDisplayService:
             'id': f'{canteen.id}-spot',
             'canteenId': canteen.id,
             'name': canteen.name,
-            'imageUrl': canteen.image_url,
+            'imageUrl': _img(canteen.image_url),
             'rating': canteen.rating,
             'price': price,
             'valueNote': features[1] if len(features) > 1 else (features[0] if features else ''),
