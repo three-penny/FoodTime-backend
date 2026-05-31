@@ -5,12 +5,16 @@
 创建时间：2026-05-23
 """
 import re
+import random
+import string
 import logging
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from flask import current_app
 from app.repositories.auth_repository import AuthRepository
 from app.utils.auth_utils import generate_token
+from app.entities.models import InviteCode
 from app.extensions import db
 
 logger = logging.getLogger(__name__)
@@ -18,6 +22,17 @@ logger = logging.getLogger(__name__)
 EMAIL_REGEX = re.compile(r'^\d+@bjtu\.edu\.cn$')
 DEFAULT_VERIFICATION_CODE = '000000'
 ALLOWED_ROLES = {'user', 'admin'}
+INVITE_CODE_LENGTH = 6
+INVITE_CODE_DAYS_VALID = 3
+INVITE_CODE_CHARS = string.ascii_uppercase + string.digits
+DEBUG_INVITE_CODE = 'ABCDEF'
+
+MAX_FIELD_LENGTHS = {
+    'email': 120,
+    'password': 128,
+    'nickname': 50,
+    'account': 50,
+}
 
 
 class AuthService:
@@ -25,6 +40,12 @@ class AuthService:
 
     def __init__(self, repository: AuthRepository | None = None):
         self.repository = repository or AuthRepository()
+
+    def _validate_field_length(self, field_name: str, value: str):
+        """校验字段长度不超过数据库定义的最大值。"""
+        max_len = MAX_FIELD_LENGTHS.get(field_name)
+        if max_len and len(value) > max_len:
+            raise ValueError(f'{field_name} 长度不能超过 {max_len} 个字符。')
 
     def register(self, email: str, password: str, nickname: str, verification_code: str, role: str = 'user', invite_code: str = '') -> dict:
         """
@@ -51,6 +72,10 @@ class AuthService:
         if not email or not password or not nickname:
             raise ValueError('邮箱、密码和昵称不能为空。')
 
+        self._validate_field_length('email', email)
+        self._validate_field_length('password', password)
+        self._validate_field_length('nickname', nickname)
+
         if not EMAIL_REGEX.match(email):
             raise ValueError('邮箱格式不正确，必须为 <数字>@bjtu.edu.cn。')
 
@@ -64,16 +89,17 @@ class AuthService:
             raise ValueError('无效的用户角色。')
 
         if role == 'admin':
-            expected_code = current_app.config.get('ADMIN_INVITE_CODE', '')
             if not invite_code:
                 raise ValueError('管理员注册需要提供邀请码。')
-            if invite_code != expected_code:
+            if not self._validate_invite_code(invite_code):
                 raise ValueError('管理员邀请码不正确。')
 
         if self.repository.find_by_email(email):
             raise ValueError('该邮箱已被注册。')
 
         account = email.split('@')[0]
+
+        self._validate_field_length('account', account)
 
         if self.repository.find_by_account(account):
             raise ValueError('该学号已被注册。')
@@ -87,9 +113,19 @@ class AuthService:
                 nickname=nickname,
                 role=role,
             )
+
+            if role == 'admin' and invite_code != DEBUG_INVITE_CODE:
+                self._consume_invite_code(invite_code, user.id)
+
+            db.session.commit()
         except IntegrityError:
             db.session.rollback()
+            logger.warning('注册冲突: email=%s, account=%s', email, account)
             raise ValueError('该账号或邮箱已被注册，请勿重复提交。')
+        except SQLAlchemyError:
+            db.session.rollback()
+            logger.exception('注册数据库异常: email=%s', email)
+            raise ValueError('注册失败，请稍后重试。')
 
         return {
             'id': user.id,
@@ -116,16 +152,21 @@ class AuthService:
         if not login_id or not password:
             raise ValueError('账号和密码不能为空。')
 
+        self._validate_field_length('password', password)
+
         user = self.repository.find_by_email(login_id)
         if not user:
             user = self.repository.find_by_account(login_id)
         if not user:
+            logger.info('登录失败: 未找到用户 login_id=%s', login_id[:20])
             raise ValueError('账号或密码错误。')
 
         if not check_password_hash(user.password_hash, password):
+            logger.info('登录失败: 密码错误 account=%s', user.account)
             raise ValueError('账号或密码错误。')
 
         if user.account_status != 'active':
+            logger.warning('登录失败: 账号已禁用 account=%s', user.account)
             raise ValueError('该账号已被禁用，请联系管理员。')
 
         token = generate_token(
@@ -137,7 +178,7 @@ class AuthService:
         return {
             'id': user.id,
             'account': user.account,
-            'email': user.email,
+            'email': user.email or '',
             'nickname': user.nickname,
             'role': user.role,
             'token': token,
@@ -173,6 +214,97 @@ class AuthService:
             'nickname': user.nickname,
             'email': user.email or '',
             'role': user.role,
+        }
+
+    def _generate_code_string(self) -> str:
+        """生成6位随机字母+数字组合的邀请码。"""
+        return ''.join(random.choices(INVITE_CODE_CHARS, k=INVITE_CODE_LENGTH))
+
+    def _validate_invite_code(self, code: str) -> bool:
+        """校验邀请码是否有效（调试码ABCDEF 或 数据库中有效的邀请码）。"""
+        if code == DEBUG_INVITE_CODE:
+            return True
+        invite_code = InviteCode.query.filter_by(code=code, is_active=True).first()
+        if not invite_code:
+            return False
+        if invite_code.expires_at < datetime.utcnow():
+            return False
+        if invite_code.used_by is not None:
+            return False
+        return True
+
+    def _consume_invite_code(self, code: str, user_id: str):
+        """将邀请码标记为已使用（不提交事务，由调用方统一提交或回滚）。"""
+        if code == DEBUG_INVITE_CODE:
+            return
+        invite_code = InviteCode.query.filter_by(code=code).first()
+        if invite_code:
+            invite_code.used_by = user_id
+            invite_code.is_active = False
+            db.session.flush()
+
+    def generate_invite_code(self, admin_user_id: str) -> dict:
+        """
+        为管理员生成邀请码。
+        如果该管理员已有有效的邀请码（未过期、未使用），则直接返回已有邀请码。
+        否则生成新的邀请码（有效期3天）。
+        """
+        existing = InviteCode.query.filter(
+            InviteCode.created_by == admin_user_id,
+            InviteCode.is_active == True,
+            InviteCode.used_by == None,
+            InviteCode.expires_at > datetime.utcnow(),
+        ).first()
+
+        if existing:
+            return {
+                'code': existing.code,
+                'expires_at': existing.expires_at.isoformat(),
+                'is_active': existing.is_active,
+            }
+
+        new_code = self._generate_code_string()
+        while InviteCode.query.filter_by(code=new_code).first():
+            new_code = self._generate_code_string()
+
+        expires_at = datetime.utcnow() + timedelta(days=INVITE_CODE_DAYS_VALID)
+        invite_code = InviteCode(
+            code=new_code,
+            created_by=admin_user_id,
+            expires_at=expires_at,
+        )
+        try:
+            db.session.add(invite_code)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            raise ValueError('邀请码生成失败，请重试。')
+
+        return {
+            'code': invite_code.code,
+            'expires_at': invite_code.expires_at.isoformat(),
+            'is_active': invite_code.is_active,
+        }
+
+    def get_active_invite_code(self, admin_user_id: str) -> dict | None:
+        """
+        获取当前管理员的有效邀请码。
+        返回当前有效的邀请码信息，如果没有则返回 None。
+        """
+        existing = InviteCode.query.filter(
+            InviteCode.created_by == admin_user_id,
+            InviteCode.is_active == True,
+            InviteCode.used_by == None,
+            InviteCode.expires_at > datetime.utcnow(),
+        ).first()
+
+        if not existing:
+            return None
+
+        return {
+            'code': existing.code,
+            'expires_at': existing.expires_at.isoformat(),
+            'is_active': existing.is_active,
         }
 
     def send_verification_code(self, email: str) -> bool:

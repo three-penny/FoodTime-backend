@@ -40,6 +40,7 @@ def _init_database(app):
                 logger.info('[DB Init] 正在创建默认管理员账号 (admin / 123456)...')
                 admin_user = User(
                     account='admin',
+                    email='admin@foodtime.local',
                     password_hash=generate_password_hash('123456'),
                     nickname='审核管理员',
                     role='admin',
@@ -53,6 +54,19 @@ def _init_database(app):
                 logger.info('[DB Init] 默认管理员账号创建成功。')
         else:
             logger.info('[DB Init] 数据库表已存在，跳过初始化。')
+            if 'invite_codes' not in existing_tables:
+                logger.info('[DB Init] 检测到 invite_codes 表缺失，正在创建...')
+                from app.entities.models import InviteCode
+                db.create_all()
+                logger.info('[DB Init] invite_codes 表已创建。')
+
+            from app.entities.models import User
+            admin_user = User.query.filter_by(account='admin').first()
+            if admin_user and not admin_user.email:
+                logger.info('[DB Init] 检测到默认管理员缺少 email，正在补全...')
+                admin_user.email = 'admin@foodtime.local'
+                db.session.commit()
+                logger.info('[DB Init] 默认管理员 email 已补全。')
 
 
 def create_app(config_class=DevelopmentConfig) -> Flask:

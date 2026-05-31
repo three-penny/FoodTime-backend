@@ -20,7 +20,7 @@ class AuthRepository:
         return User.query.filter_by(account=account).first()
 
     def create_user(self, account: str, email: str, password_hash: str, nickname: str, role: str = 'user') -> User:
-        """创建新用户并返回持久化的 User 实例。"""
+        """创建新用户（不提交事务，由调用方统一提交或回滚）。"""
         user = User(
             account=account,
             email=email,
@@ -29,7 +29,7 @@ class AuthRepository:
             role=role,
         )
         db.session.add(user)
-        db.session.commit()
+        db.session.flush()
         return user
 
     def update_user(self, user_id: str, **kwargs) -> User | None:

@@ -247,6 +247,23 @@ class WeeklyRecommendation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class InviteCode(db.Model):
+    __tablename__ = 'invite_codes'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    code = db.Column(db.String(6), nullable=False, unique=True, index=True)
+    created_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    used_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_invite_codes')
+    user = db.relationship('User', foreign_keys=[used_by], backref='used_invite_code')
+
+
 class Message(db.Model):
     __tablename__ = 'messages'
 
