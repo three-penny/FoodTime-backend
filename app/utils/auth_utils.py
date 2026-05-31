@@ -93,15 +93,33 @@ def login_required(f):
 
 def admin_required(f):
     """
-    管理员鉴权装饰器。在 login_required 基础上校验角色是否为 admin。
+    管理员鉴权装饰器。在 login_required 基础上校验角色是否为 admin 或 superadmin。
     """
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        if g.role != 'admin':
+        if g.role not in ('admin', 'superadmin'):
             return jsonify({
                 'code': 'AUTH_403_001',
                 'message': '权限不足，仅管理员可执行此操作。',
+                'trace_id': getattr(g, 'trace_id', ''),
+            }), 403
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def superadmin_required(f):
+    """
+    超级管理员鉴权装饰器。在 login_required 基础上校验角色是否为 superadmin。
+    """
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if g.role != 'superadmin':
+            return jsonify({
+                'code': 'AUTH_403_002',
+                'message': '权限不足，仅超级管理员可执行此操作。',
                 'trace_id': getattr(g, 'trace_id', ''),
             }), 403
         return f(*args, **kwargs)

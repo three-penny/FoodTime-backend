@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 EMAIL_REGEX = re.compile(r'^\d+@bjtu\.edu\.cn$')
 DEFAULT_VERIFICATION_CODE = '000000'
-ALLOWED_ROLES = {'user', 'admin'}
+ALLOWED_ROLES = {'user', 'admin', 'superadmin'}
 INVITE_CODE_LENGTH = 6
 INVITE_CODE_DAYS_VALID = 3
 INVITE_CODE_CHARS = string.ascii_uppercase + string.digits

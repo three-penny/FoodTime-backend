@@ -52,6 +52,30 @@ def _init_database(app):
                 db.session.add(admin_user)
                 db.session.commit()
                 logger.info('[DB Init] 默认管理员账号创建成功。')
+            superadmin_exists = User.query.filter_by(account='superadmin').first()
+            if not superadmin_exists:
+                logger.info('[DB Init] 正在创建默认超级管理员账号 (superadmin / 123456)...')
+                superadmin_user = User(
+                    account='superadmin',
+                    email='superadmin@foodtime.local',
+                    password_hash=generate_password_hash('123456'),
+                    nickname='超级管理员',
+                    role='superadmin',
+                    account_status='active',
+                    current_points=9999,
+                    total_earned_points=9999,
+                    total_used_points=0,
+                )
+                db.session.add(superadmin_user)
+                db.session.commit()
+                logger.info('[DB Init] 默认超级管理员账号创建成功。')
+            elif superadmin_exists.nickname == '超级管理员':
+                from werkzeug.security import check_password_hash
+                if not check_password_hash(superadmin_exists.password_hash, '123456'):
+                    logger.info('[DB Init] 检测到默认超管密码非 123456，正在重置...')
+                    superadmin_exists.password_hash = generate_password_hash('123456')
+                    db.session.commit()
+                    logger.info('[DB Init] 默认超管密码已重置为 123456。')
         else:
             logger.info('[DB Init] 数据库表已存在，跳过初始化。')
             if 'invite_codes' not in existing_tables:
@@ -59,6 +83,11 @@ def _init_database(app):
                 from app.entities.models import InviteCode
                 db.create_all()
                 logger.info('[DB Init] invite_codes 表已创建。')
+            if 'audit_logs' not in existing_tables:
+                logger.info('[DB Init] 检测到 audit_logs 表缺失，正在创建...')
+                from app.entities.models import AuditLog
+                db.create_all()
+                logger.info('[DB Init] audit_logs 表已创建。')
 
             from app.entities.models import User
             admin_user = User.query.filter_by(account='admin').first()
@@ -67,6 +96,24 @@ def _init_database(app):
                 admin_user.email = 'admin@foodtime.local'
                 db.session.commit()
                 logger.info('[DB Init] 默认管理员 email 已补全。')
+
+            superadmin_exists = User.query.filter_by(account='superadmin').first()
+            if not superadmin_exists:
+                logger.info('[DB Init] 正在创建默认超级管理员账号 (superadmin / 123456)...')
+                superadmin_user = User(
+                    account='superadmin',
+                    email='superadmin@foodtime.local',
+                    password_hash=generate_password_hash('123456'),
+                    nickname='超级管理员',
+                    role='superadmin',
+                    account_status='active',
+                    current_points=9999,
+                    total_earned_points=9999,
+                    total_used_points=0,
+                )
+                db.session.add(superadmin_user)
+                db.session.commit()
+                logger.info('[DB Init] 默认超级管理员账号创建成功。')
 
 
 def create_app(config_class=DevelopmentConfig) -> Flask:
@@ -113,6 +160,7 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     from app.routes.rant_routes import rant_bp
     from app.routes.points_routes import points_bp
     from app.routes.message_routes import message_bp
+    from app.routes.superadmin_routes import superadmin_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(submission_bp)
     app.register_blueprint(dining_bp)
@@ -120,6 +168,7 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     app.register_blueprint(rant_bp)
     app.register_blueprint(points_bp)
     app.register_blueprint(message_bp)
+    app.register_blueprint(superadmin_bp)
 
     _setup_scheduler(app)
 
