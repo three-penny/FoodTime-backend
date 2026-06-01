@@ -1,6 +1,6 @@
 """
 文件名：app/utils/email_utils.py
-功能描述：邮件发送工具，提供验证码邮件发送与内存级验证码存储校验能力。
+功能描述：邮件发送工具，提供验证码邮件发送与数据库级验证码存储校验能力。
 作者：FoodTime Backend Team
 创建时间：2026-06-01
 """
@@ -8,35 +8,17 @@
 import random
 import time
 import logging
-from threading import Lock
 from flask import current_app
 from flask_mail import Message
-from app.extensions import mail
+from app.extensions import db, mail
+from app.entities.models import VerificationCode
 
 logger = logging.getLogger(__name__)
-
-_code_store: dict[str, dict] = {}
-_code_store_lock = Lock()
-_CLEANUP_INTERVAL = 300
-_last_cleanup = time.time()
 
 
 def _generate_code(length: int = 6) -> str:
     """生成指定位数的纯数字验证码。"""
     return ''.join(random.choices('0123456789', k=length))
-
-
-def _cleanup_expired():
-    """清理过期验证码，避免内存泄漏。"""
-    global _last_cleanup
-    now = time.time()
-    if now - _last_cleanup < _CLEANUP_INTERVAL:
-        return
-    with _code_store_lock:
-        expired_keys = [k for k, v in _code_store.items() if v['expires_at'] <= now]
-        for k in expired_keys:
-            del _code_store[k]
-        _last_cleanup = now
 
 
 def send_verification_code_email(email: str) -> str:
@@ -52,11 +34,10 @@ def send_verification_code_email(email: str) -> str:
     code = _generate_code(6)
     expires_at = time.time() + current_app.config['VERIFICATION_CODE_EXPIRE_SECONDS']
 
-    with _code_store_lock:
-        _code_store[email] = {
-            'code': code,
-            'expires_at': expires_at,
-        }
+    VerificationCode.query.filter_by(email=email).delete()
+    vc = VerificationCode(email=email, code=code, expires_at=expires_at)
+    db.session.add(vc)
+    db.session.commit()
 
     subject = 'FoodTime 注册验证码'
     body = f"""您好，
@@ -79,9 +60,10 @@ FoodTime 团队"""
         logger.info('验证码邮件已发送至 %s', email)
     except Exception as e:
         logger.exception('验证码邮件发送失败: email=%s, error=%s', email, e)
+        VerificationCode.query.filter_by(email=email).delete()
+        db.session.commit()
         raise RuntimeError('验证码发送失败，请稍后重试。')
 
-    _cleanup_expired()
     return code
 
 
@@ -94,14 +76,15 @@ def verify_code(email: str, code: str) -> bool:
     返回值说明：
         校验通过返回 True，否则返回 False。
     """
-    with _code_store_lock:
-        record = _code_store.get(email)
-        if not record:
-            return False
-        if time.time() > record['expires_at']:
-            del _code_store[email]
-            return False
-        if record['code'] != code:
-            return False
-        del _code_store[email]
-        return True
+    record = VerificationCode.query.filter_by(email=email).first()
+    if not record:
+        return False
+    if time.time() > record.expires_at:
+        db.session.delete(record)
+        db.session.commit()
+        return False
+    if record.code != code:
+        return False
+    db.session.delete(record)
+    db.session.commit()
+    return True

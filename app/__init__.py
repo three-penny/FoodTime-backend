@@ -88,6 +88,10 @@ def _init_database(app):
                 from app.entities.models import AuditLog
                 db.create_all()
                 logger.info('[DB Init] audit_logs 表已创建。')
+            if 'verification_codes' not in existing_tables:
+                logger.info('[DB Init] 检测到 verification_codes 表缺失，正在创建...')
+                db.create_all()
+                logger.info('[DB Init] verification_codes 表已创建。')
 
             from app.entities.models import User
             admin_user = User.query.filter_by(account='admin').first()
