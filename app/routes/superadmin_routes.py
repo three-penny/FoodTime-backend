@@ -130,6 +130,44 @@ def list_audit_logs():
     }), 200
 
 
+@superadmin_bp.put('/users/<user_id>/password')
+@superadmin_required
+def change_password(user_id: str):
+    """
+    接口说明：超级管理员强制修改指定用户密码。
+    权限要求：超级管理员。
+    请求参数：password（新密码，至少6位）。
+    """
+    data = request.get_json(silent=True) or {}
+    service = SuperadminService()
+    try:
+        new_password = data.get('password', '')
+        if not new_password or not isinstance(new_password, str):
+            return jsonify({
+                'code': 'SA_422_005',
+                'message': '密码不能为空。',
+                'trace_id': g.trace_id,
+            }), 422
+        result = service.change_user_password(
+            user_id=user_id,
+            new_password=new_password,
+            operator_account=g.account,
+            operator_id=g.user_id,
+        )
+        return jsonify({
+            'code': 0,
+            'message': '密码修改成功',
+            'data': result,
+            'trace_id': g.trace_id,
+        }), 200
+    except ValueError as e:
+        return jsonify({
+            'code': 'SA_422_006',
+            'message': str(e),
+            'trace_id': g.trace_id,
+        }), 422
+
+
 @superadmin_bp.get('/dashboard')
 @superadmin_required
 def dashboard():

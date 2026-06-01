@@ -7,6 +7,7 @@
 from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.security import generate_password_hash
 from app.extensions import db
 from app.entities.models import (
     User, Dish, Review, Rant, DishSubmission,
@@ -118,6 +119,41 @@ class SuperadminService:
             'total': pagination.total,
             'page': pagination.page,
             'per_page': pagination.per_page,
+        }
+
+    def change_user_password(self, user_id: str, new_password: str, operator_account: str, operator_id: str) -> dict:
+        """
+        功能描述：超级管理员强制修改指定用户密码。
+        参数说明：
+            user_id: 目标用户 ID
+            new_password: 新明文密码
+            operator_account: 操作者账号
+            operator_id: 操作者 ID
+        异常抛出：
+            ValueError: 用户不存在或密码不合法。
+        """
+        if not new_password or len(new_password) < 6:
+            raise ValueError('密码长度不能少于 6 位。')
+        if len(new_password) > 128:
+            raise ValueError('密码长度不能超过 128 个字符。')
+
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError('用户不存在。')
+
+        user.password_hash = generate_password_hash(new_password)
+        self._add_log(
+            operator_account=operator_account,
+            operator_id=operator_id,
+            action='password_change',
+            target_type='user',
+            target_id=user_id,
+            detail=f'密码已重置，账号: {user.account}',
+        )
+        db.session.commit()
+        return {
+            'id': user.id,
+            'account': user.account,
         }
 
     def get_dashboard_stats(self) -> dict:
