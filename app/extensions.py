@@ -7,6 +7,7 @@ from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
+from redis import Redis
 
 
 naming_convention = {
@@ -23,3 +24,16 @@ db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
 migrate = Migrate()
 
 mail = Mail()
+
+_redis_client: Redis | None = None
+
+
+def get_redis() -> Redis:
+    if _redis_client is None:
+        raise RuntimeError('Redis 未初始化，请检查 REDIS_URL 配置。')
+    return _redis_client
+
+
+def init_redis(app):
+    global _redis_client
+    _redis_client = Redis.from_url(app.config['REDIS_URL'], decode_responses=True)

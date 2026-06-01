@@ -13,7 +13,7 @@ from werkzeug.exceptions import HTTPException
 from sqlalchemy import inspect as sa_inspect
 from werkzeug.security import generate_password_hash
 from config import DevelopmentConfig
-from app.extensions import db, migrate, mail
+from app.extensions import db, migrate, mail, init_redis
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,12 @@ def _init_database(app):
             db.create_all()
             logger.info('[DB Init] 所有表已创建完毕。')
 
-            from app.entities.models import User
-            admin_exists = User.query.filter_by(account='admin').first()
-            if not admin_exists:
+            import uuid
+            from app.entities.models import User, Canteen
+
+            if not User.query.filter_by(account='admin').first():
                 logger.info('[DB Init] 正在创建默认管理员账号 (admin / 123456)...')
-                admin_user = User(
+                db.session.add(User(
                     account='admin',
                     email='admin@foodtime.local',
                     password_hash=generate_password_hash('123456'),
@@ -48,14 +49,14 @@ def _init_database(app):
                     current_points=999,
                     total_earned_points=999,
                     total_used_points=0,
-                )
-                db.session.add(admin_user)
+                ))
                 db.session.commit()
                 logger.info('[DB Init] 默认管理员账号创建成功。')
-            superadmin_exists = User.query.filter_by(account='superadmin').first()
-            if not superadmin_exists:
+
+            superadmin = User.query.filter_by(account='superadmin').first()
+            if not superadmin:
                 logger.info('[DB Init] 正在创建默认超级管理员账号 (superadmin / 123456)...')
-                superadmin_user = User(
+                db.session.add(User(
                     account='superadmin',
                     email='superadmin@foodtime.local',
                     password_hash=generate_password_hash('123456'),
@@ -65,17 +66,23 @@ def _init_database(app):
                     current_points=9999,
                     total_earned_points=9999,
                     total_used_points=0,
-                )
-                db.session.add(superadmin_user)
+                ))
                 db.session.commit()
                 logger.info('[DB Init] 默认超级管理员账号创建成功。')
-            elif superadmin_exists.nickname == '超级管理员':
-                from werkzeug.security import check_password_hash
-                if not check_password_hash(superadmin_exists.password_hash, '123456'):
-                    logger.info('[DB Init] 检测到默认超管密码非 123456，正在重置...')
-                    superadmin_exists.password_hash = generate_password_hash('123456')
-                    db.session.commit()
-                    logger.info('[DB Init] 默认超管密码已重置为 123456。')
+
+            if not Canteen.query.first():
+                logger.info('[DB Init] 正在创建测试食堂...')
+                db.session.add(Canteen(
+                    id=str(uuid.uuid4()),
+                    name='测试食堂',
+                    short_name='测试',
+                    location='测试位置',
+                    open_hours='11:00-13:00, 17:00-19:00',
+                    features=['测试'],
+                    summary='这是一个测试食堂。',
+                ))
+                db.session.commit()
+                logger.info('[DB Init] 测试食堂创建成功。')
         else:
             logger.info('[DB Init] 数据库表已存在，跳过初始化。')
             if 'invite_codes' not in existing_tables:
@@ -137,6 +144,8 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
     mail.init_app(app)
+
+    init_redis(app)
 
     from app.entities import models
 

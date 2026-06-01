@@ -35,6 +35,9 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or ''
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or ''
 
+    # Redis
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379/0'
+
     # Verification code settings
     VERIFICATION_CODE_EXPIRE_SECONDS = int(os.environ.get('VERIFICATION_CODE_EXPIRE_SECONDS', '300'))
 
