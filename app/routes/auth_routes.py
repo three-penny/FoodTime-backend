@@ -121,7 +121,7 @@ def login():
 @auth_bp.post('/send-code')
 def send_code():
     """
-    接口说明：发送邮箱验证码（当前默认使用 000000，后续接入真实邮件服务）。
+    接口说明：发送6位数字邮箱验证码。
     权限要求：无。
     请求参数：email。
     返回说明：返回发送结果。
@@ -143,6 +143,12 @@ def send_code():
             'message': str(e),
             'trace_id': g.trace_id,
         }), 422
+    except RuntimeError as e:
+        return jsonify({
+            'code': 'AUTH_500_001',
+            'message': str(e),
+            'trace_id': g.trace_id,
+        }), 500
 
 
 @auth_bp.put('/profile')

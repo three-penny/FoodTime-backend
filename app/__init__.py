@@ -13,7 +13,7 @@ from werkzeug.exceptions import HTTPException
 from sqlalchemy import inspect as sa_inspect
 from werkzeug.security import generate_password_hash
 from config import DevelopmentConfig
-from app.extensions import db, migrate
+from app.extensions import db, migrate, mail
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,7 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
 
     db.init_app(app)
     migrate.init_app(app, db)
+    mail.init_app(app)
 
     from app.entities import models
 

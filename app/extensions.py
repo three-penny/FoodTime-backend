@@ -6,6 +6,7 @@
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_mail import Mail
 
 
 naming_convention = {
@@ -20,3 +21,5 @@ naming_convention = {
 db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
 
 migrate = Migrate()
+
+mail = Mail()

@@ -14,13 +14,13 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from flask import current_app
 from app.repositories.auth_repository import AuthRepository
 from app.utils.auth_utils import generate_token
+from app.utils.email_utils import send_verification_code_email, verify_code
 from app.entities.models import InviteCode
 from app.extensions import db
 
 logger = logging.getLogger(__name__)
 
 EMAIL_REGEX = re.compile(r'^\d+@bjtu\.edu\.cn$')
-DEFAULT_VERIFICATION_CODE = '000000'
 ALLOWED_ROLES = {'user', 'admin', 'superadmin'}
 INVITE_CODE_LENGTH = 6
 INVITE_CODE_DAYS_VALID = 3
@@ -82,8 +82,8 @@ class AuthService:
         if len(password) < 6:
             raise ValueError('密码长度不能少于 6 位。')
 
-        if verification_code != DEFAULT_VERIFICATION_CODE:
-            raise ValueError('验证码错误。')
+        if not verify_code(email, verification_code):
+            raise ValueError('验证码错误或已过期，请重新获取。')
 
         if role not in ALLOWED_ROLES:
             raise ValueError('无效的用户角色。')
@@ -309,15 +309,18 @@ class AuthService:
 
     def send_verification_code(self, email: str) -> bool:
         """
-        发送邮箱验证码（预留方法）。
-        当前阶段默认使用固定验证码 000000，后续接入真实邮件服务。
+        发送6位数字验证码到指定邮箱。
         参数说明：
             email: 接收验证码的邮箱地址。
         返回值说明：
-            始终返回 True 表示发送成功。
+            返回 True 表示发送成功。
+        异常抛出：
+            ValueError: 邮箱格式校验失败。
+            RuntimeError: 邮件发送失败（SMTP 异常等）。
         """
         email = email.strip().lower()
         if not EMAIL_REGEX.match(email):
             raise ValueError('邮箱格式不正确，必须为 <数字>@bjtu.edu.cn。')
-        logger.info('Send verification code to %s (default: %s)', email, DEFAULT_VERIFICATION_CODE)
+        send_verification_code_email(email)
+        logger.info('验证码已发送至 %s', email)
         return True

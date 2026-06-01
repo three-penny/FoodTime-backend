@@ -26,6 +26,17 @@ class Config:
     JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
     ADMIN_INVITE_CODE = os.environ.get('ADMIN_INVITE_CODE') or 'ABCDEF'
 
+    # Mail (SMTP) configuration for sending verification codes
+    MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.qq.com'
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', '465'))
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'true').lower() == 'true'
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'false').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or ''
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or ''
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or ''
+
+    # Verification code settings
+    VERIFICATION_CODE_EXPIRE_SECONDS = int(os.environ.get('VERIFICATION_CODE_EXPIRE_SECONDS', '300'))
 
     CANTEEN_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'canteen_img')
     STALL_IMG_FOLDER = os.path.join(BASE_DIR, 'data', 'stall_img')
