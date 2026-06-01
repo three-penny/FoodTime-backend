@@ -94,6 +94,9 @@ class AuthService:
             if not self._validate_invite_code(invite_code):
                 raise ValueError('管理员邀请码不正确。')
 
+        if self.repository.find_by_nickname(nickname):
+            raise ValueError('该昵称已被使用，请更换一个。')
+
         if self.repository.find_by_email(email):
             raise ValueError('该邮箱已被注册。')
 
@@ -157,6 +160,8 @@ class AuthService:
         user = self.repository.find_by_email(login_id)
         if not user:
             user = self.repository.find_by_account(login_id)
+        if not user:
+            user = self.repository.find_by_nickname(login_id)
         if not user:
             logger.info('登录失败: 未找到用户 login_id=%s', login_id[:20])
             raise ValueError('账号或密码错误。')

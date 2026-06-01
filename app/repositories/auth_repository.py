@@ -19,6 +19,10 @@ class AuthRepository:
         """根据账号查询用户。"""
         return User.query.filter_by(account=account).first()
 
+    def find_by_nickname(self, nickname: str) -> User | None:
+        """根据昵称查询用户。"""
+        return User.query.filter_by(nickname=nickname).first()
+
     def create_user(self, account: str, email: str, password_hash: str, nickname: str, role: str = 'user') -> User:
         """创建新用户（不提交事务，由调用方统一提交或回滚）。"""
         user = User(
