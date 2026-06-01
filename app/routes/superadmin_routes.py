@@ -136,7 +136,8 @@ def change_password(user_id: str):
     """
     接口说明：超级管理员强制修改指定用户密码。
     权限要求：超级管理员。
-    请求参数：password（新密码，至少6位）。
+    请求参数：password（新密码，6-128 位）。
+    异常说明：用户不存在返回 SA_422_006，参数非法返回 SA_422_005。
     """
     data = request.get_json(silent=True) or {}
     service = SuperadminService()
@@ -145,7 +146,7 @@ def change_password(user_id: str):
         if not new_password or not isinstance(new_password, str):
             return jsonify({
                 'code': 'SA_422_005',
-                'message': '密码不能为空。',
+                'message': '新密码不能为空，请输入后重试。',
                 'trace_id': g.trace_id,
             }), 422
         result = service.change_user_password(
@@ -156,7 +157,7 @@ def change_password(user_id: str):
         )
         return jsonify({
             'code': 0,
-            'message': '密码修改成功',
+            'message': f'已成功将 {result["account"]} 的密码重置。',
             'data': result,
             'trace_id': g.trace_id,
         }), 200

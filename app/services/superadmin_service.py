@@ -132,16 +132,23 @@ class SuperadminService:
         异常抛出：
             ValueError: 用户不存在或密码不合法。
         """
-        if not new_password or len(new_password) < 6:
+        new_password = new_password.strip() if isinstance(new_password, str) else new_password
+        if not new_password or not isinstance(new_password, str):
+            raise ValueError('新密码不能为空。')
+        if len(new_password) < 6:
             raise ValueError('密码长度不能少于 6 位。')
         if len(new_password) > 128:
             raise ValueError('密码长度不能超过 128 个字符。')
 
         user = User.query.get(user_id)
         if not user:
-            raise ValueError('用户不存在。')
+            raise ValueError('用户不存在或已被删除。')
 
-        user.password_hash = generate_password_hash(new_password)
+        try:
+            user.password_hash = generate_password_hash(new_password)
+        except Exception:
+            raise ValueError('密码处理失败，请稍后重试。')
+
         self._add_log(
             operator_account=operator_account,
             operator_id=operator_id,
