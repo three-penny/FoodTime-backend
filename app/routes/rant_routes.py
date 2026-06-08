@@ -7,7 +7,6 @@ rant_service = RantService()
 
 
 @rant_bp.get('/rants')
-@login_required
 def list_rants():
     status = request.args.get('status')
     if status:
