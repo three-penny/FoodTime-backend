@@ -83,5 +83,10 @@ class RantRepository:
             },
             synchronize_session=False
         )
-        db.session.commit()
+        return result > 0
+
+    def update_rant(self, rant_id: str, **kwargs) -> bool:
+        result = db.session.query(Rant).filter(Rant.id == rant_id).update(
+            kwargs, synchronize_session=False
+        )
         return result > 0

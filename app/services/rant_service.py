@@ -42,6 +42,24 @@ class RantService:
         db.session.commit()
         return self._rant_to_dict(rant)
 
+    def update_rant_content(self, rant_id, **kwargs):
+        allowed = {'canteen_name', 'content', 'tag'}
+        updates = {}
+        for key in allowed:
+            if key in kwargs and kwargs[key] is not None:
+                val = kwargs[key]
+                if isinstance(val, str):
+                    val = val.strip()
+                updates[key] = val
+        if not updates:
+            raise ValueError('没有需要更新的字段。')
+        success = self.repository.update_rant(rant_id, **updates)
+        if not success:
+            raise ValueError('吐槽记录不存在。')
+        db.session.commit()
+        rant = db.session.query(RantModel).filter(RantModel.id == rant_id).first()
+        return self._rant_to_dict(rant)
+
     def audit_rant(self, rant_id, status, audit_reason, auditor_account):
         if status not in ('approved', 'rejected'):
             raise ValueError('审核状态只能是 approved 或 rejected。')

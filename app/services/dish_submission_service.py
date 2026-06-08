@@ -244,6 +244,47 @@ class DishSubmissionService:
             logger.warning('图片迁移失败，使用默认图片: %s', e)
             return current_app.config.get('DEFAULT_IMG_URL', '/api/v1/uploads/default_img/default.jpg')
 
+    def admin_create_submission(self, auditor_account: str, **kwargs) -> dict:
+        """管理员直接创建提报并自动审核通过，同时创建菜品记录。"""
+        submission = self.repository.create_submission(
+            dish_name=kwargs.get('dish_name', '').strip(),
+            canteen_name=kwargs.get('canteen_name', '').strip(),
+            stall_name=kwargs.get('stall_name', '').strip(),
+            price=kwargs.get('price'),
+            image_url=kwargs.get('image_url', ''),
+            description=kwargs.get('description', '').strip(),
+            tags=kwargs.get('tags', []),
+            submitter_account=kwargs.get('submitter_account', auditor_account),
+        )
+        db.session.flush()
+        self.audit_submission(
+            submission_id=submission.id,
+            status='approved',
+            audit_reason='管理员直接创建并审核通过',
+            auditor_account=auditor_account,
+        )
+        return self._to_dict(submission)
+
+    def update_submission_content(self, submission_id: str, **kwargs) -> dict:
+        """更新提报内容。"""
+        allowed = {'dish_name', 'canteen_name', 'stall_name', 'price', 'description', 'tags'}
+        updates = {}
+        for key in allowed:
+            if key in kwargs and kwargs[key] is not None:
+                val = kwargs[key]
+                if isinstance(val, str):
+                    val = val.strip()
+                updates[key] = val
+        if not updates:
+            raise ValueError('没有需要更新的字段。')
+        success = self.repository.update_submission(submission_id, **updates)
+        if not success:
+            raise ValueError('提报记录不存在。')
+        db.session.commit()
+        from app.entities.models import DishSubmission
+        submission = db.session.query(DishSubmission).filter(DishSubmission.id == submission_id).first()
+        return self._to_dict(submission)
+
     def _to_dict(self, submission) -> dict:
         image_url = submission.image_url or ''
         if image_url and not image_url.startswith('/'):

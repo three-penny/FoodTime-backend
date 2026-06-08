@@ -111,5 +111,10 @@ class DishSubmissionRepository:
             },
             synchronize_session=False
         )
-        db.session.commit()
+        return result > 0
+
+    def update_submission(self, submission_id: str, **kwargs) -> bool:
+        result = db.session.query(DishSubmission).filter(DishSubmission.id == submission_id).update(
+            kwargs, synchronize_session=False
+        )
         return result > 0

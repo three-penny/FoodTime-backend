@@ -43,6 +43,22 @@ def create_rant():
         }), 422
 
 
+@rant_bp.put('/rants/<rant_id>')
+@admin_required
+def edit_rant(rant_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        rant = rant_service.update_rant_content(
+            rant_id,
+            canteen_name=data.get('canteenName'),
+            content=data.get('content'),
+            tag=data.get('tag'),
+        )
+        return jsonify({'code': 0, 'message': '更新成功', 'data': rant, 'trace_id': g.trace_id}), 200
+    except ValueError as e:
+        return jsonify({'code': 'RANT_422_003', 'message': str(e), 'trace_id': g.trace_id}), 422
+
+
 @rant_bp.put('/rants/<rant_id>/audit')
 @admin_required
 def audit_rant(rant_id):
