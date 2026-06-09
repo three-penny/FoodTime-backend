@@ -104,6 +104,38 @@ def create_submission():
         }), 422
 
 
+@submission_bp.post('/admin')
+@admin_required
+def admin_create_submission():
+    data = request.get_json(silent=True) or {}
+    service = DishSubmissionService()
+    try:
+        submission = service.admin_create_submission(
+            auditor_account=g.account,
+            dish_name=data.get('dish_name', ''),
+            canteen_name=data.get('canteen_name', ''),
+            stall_name=data.get('stall_name', ''),
+            price=data.get('price'),
+            description=data.get('description', ''),
+            tags=data.get('tags', []),
+        )
+        return jsonify({'code': 0, 'message': '创建成功，已自动通过审核', 'data': submission, 'trace_id': g.trace_id}), 201
+    except ValueError as e:
+        return jsonify({'code': 'SUBMIT_422_003', 'message': str(e), 'trace_id': g.trace_id}), 422
+
+
+@submission_bp.put('/<submission_id>')
+@admin_required
+def edit_submission(submission_id):
+    data = request.get_json(silent=True) or {}
+    service = DishSubmissionService()
+    try:
+        submission = service.update_submission_content(submission_id, **data)
+        return jsonify({'code': 0, 'message': '更新成功', 'data': submission, 'trace_id': g.trace_id}), 200
+    except ValueError as e:
+        return jsonify({'code': 'SUBMIT_422_004', 'message': str(e), 'trace_id': g.trace_id}), 422
+
+
 @submission_bp.put('/<submission_id>/audit')
 @admin_required
 def audit_submission(submission_id):

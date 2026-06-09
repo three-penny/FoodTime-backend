@@ -1,4 +1,5 @@
 import os
+import uuid
 from flask import Blueprint, jsonify, request, g, send_from_directory, current_app
 from app.services.dining_display_service import DiningDisplayService
 from app.utils.auth_utils import login_required, admin_required
@@ -217,3 +218,32 @@ def serve_upload(folder, filename):
         return jsonify({'code': 'DINING_400_001', 'message': '不允许的目录', 'trace_id': g.trace_id}), 400
     data_dir = os.path.join(current_app.root_path, '..', 'data')
     return send_from_directory(os.path.join(data_dir, folder), filename)
+
+
+@dining_bp.post('/uploads/<folder>')
+@admin_required
+def upload_image(folder):
+    allowed_folders = {'canteen_img', 'dish_img', 'stall_img'}
+    if folder not in allowed_folders:
+        return jsonify({'code': 'DINING_400_001', 'message': '不允许的目录', 'trace_id': g.trace_id}), 400
+
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'code': 'DINING_400_002', 'message': '未选择图片文件', 'trace_id': g.trace_id}), 400
+
+    ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    if ext not in ALLOWED_EXT:
+        return jsonify({'code': 'DINING_400_003', 'message': '不支持的图片格式', 'trace_id': g.trace_id}), 400
+
+    data_dir = os.path.join(current_app.root_path, '..', 'data', folder)
+    os.makedirs(data_dir, exist_ok=True)
+
+    filename = f'{uuid.uuid4().hex}.{ext}'
+    file.save(os.path.join(data_dir, filename))
+
+    return jsonify({
+        'code': 0, 'message': '上传成功',
+        'data': {'url': f'/api/v1/uploads/{folder}/{filename}'},
+        'trace_id': g.trace_id,
+    }), 201
