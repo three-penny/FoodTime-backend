@@ -1,19 +1,25 @@
 from flask import Blueprint, jsonify, request, g
 from app.services.rant_service import RantService
-from app.utils.auth_utils import login_required, admin_required
+from app.utils.auth_utils import login_required, admin_required, decode_token
 
 rant_bp = Blueprint('rants', __name__, url_prefix='/api/v1')
 rant_service = RantService()
 
 
 @rant_bp.get('/rants')
-@login_required
 def list_rants():
     status = request.args.get('status')
-    if status:
+    token = None
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        token = decode_token(auth_header[7:])
+
+    if status and token:
         data = rant_service.get_rants_by_status(status)
-    else:
+    elif token:
         data = rant_service.get_all_rants()
+    else:
+        data = rant_service.get_approved_rants()
     return jsonify({'code': 0, 'message': 'success', 'data': data, 'trace_id': g.trace_id}), 200
 
 
@@ -41,6 +47,22 @@ def create_rant():
             'message': str(e),
             'trace_id': g.trace_id,
         }), 422
+
+
+@rant_bp.put('/rants/<rant_id>')
+@admin_required
+def edit_rant(rant_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        rant = rant_service.update_rant_content(
+            rant_id,
+            canteen_name=data.get('canteenName'),
+            content=data.get('content'),
+            tag=data.get('tag'),
+        )
+        return jsonify({'code': 0, 'message': '更新成功', 'data': rant, 'trace_id': g.trace_id}), 200
+    except ValueError as e:
+        return jsonify({'code': 'RANT_422_003', 'message': str(e), 'trace_id': g.trace_id}), 422
 
 
 @rant_bp.put('/rants/<rant_id>/audit')

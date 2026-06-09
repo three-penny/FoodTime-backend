@@ -31,7 +31,6 @@ def list_all_reviews():
 
 
 @review_bp.get('')
-@login_required
 def list_reviews():
     """
     接口说明：查询指定菜品的已审核通过评价列表。
