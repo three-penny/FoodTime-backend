@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, g
 from app.services.rant_service import RantService
-from app.utils.auth_utils import login_required, admin_required
+from app.utils.auth_utils import login_required, admin_required, decode_token
 
 rant_bp = Blueprint('rants', __name__, url_prefix='/api/v1')
 rant_service = RantService()
@@ -9,10 +9,17 @@ rant_service = RantService()
 @rant_bp.get('/rants')
 def list_rants():
     status = request.args.get('status')
-    if status:
+    token = None
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        token = decode_token(auth_header[7:])
+
+    if status and token:
         data = rant_service.get_rants_by_status(status)
-    else:
+    elif token:
         data = rant_service.get_all_rants()
+    else:
+        data = rant_service.get_approved_rants()
     return jsonify({'code': 0, 'message': 'success', 'data': data, 'trace_id': g.trace_id}), 200
 
 

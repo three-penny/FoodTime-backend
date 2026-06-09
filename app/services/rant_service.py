@@ -19,6 +19,12 @@ class RantService:
             'reason': rant.audit_reason or '',
         }
 
+    def get_approved_rants(self):
+        rants = db.session.query(RantModel).filter(
+            RantModel.status == 'approved'
+        ).order_by(RantModel.created_at.desc()).all()
+        return [self._rant_to_dict(r) for r in rants]
+
     def get_all_rants(self):
         rants = db.session.query(RantModel).order_by(RantModel.created_at.desc()).all()
         return [self._rant_to_dict(r) for r in rants]
