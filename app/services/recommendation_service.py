@@ -121,18 +121,31 @@ def refresh_weekly_recommendations():
 
 
 def get_daily_recommendations():
-    """获取当前每日推荐列表。"""
+    """获取当前每日推荐列表，并使用 Dish 表中的实时图片 URL。"""
     items = DailyRecommendation.query.order_by(DailyRecommendation.created_at.desc()).all()
-    return [_daily_to_dict(i) for i in items]
+    if not items:
+        return []
+
+    # 批量获取实时菜品数据，确保图片 URL 是最新的
+    dish_ids = [item.dish_id for item in items]
+    dish_map = {d.id: d for d in Dish.query.filter(Dish.id.in_(dish_ids)).all()}
+    return [_daily_to_dict(item, dish_map.get(item.dish_id)) for item in items]
 
 
 def get_weekly_recommendations():
-    """获取当前每周推荐列表。"""
+    """获取当前每周推荐列表，并使用 Dish 表中的实时图片 URL。"""
     items = WeeklyRecommendation.query.order_by(WeeklyRecommendation.rating.desc()).all()
-    return [_weekly_to_dict(i) for i in items]
+    if not items:
+        return []
+
+    dish_ids = [item.dish_id for item in items]
+    dish_map = {d.id: d for d in Dish.query.filter(Dish.id.in_(dish_ids)).all()}
+    return [_weekly_to_dict(item, dish_map.get(item.dish_id)) for item in items]
 
 
-def _daily_to_dict(item):
+def _daily_to_dict(item, dish=None):
+    """序列化每日推荐项。如果提供了 dish 对象，则使用其最新的 image_url。"""
+    effective_image_url = dish.image_url if dish and dish.image_url else item.image_url
     return {
         'id': item.dish_id,
         'dishId': item.dish_id,
@@ -142,12 +155,14 @@ def _daily_to_dict(item):
         'stall': item.stall_name,
         'price': item.price,
         'rating': item.rating,
-        'imageUrl': _img(item.image_url),
+        'imageUrl': _img(effective_image_url),
         'tags': item.tags or [],
     }
 
 
-def _weekly_to_dict(item):
+def _weekly_to_dict(item, dish=None):
+    """序列化每周推荐项。如果提供了 dish 对象，则使用其最新的 image_url。"""
+    effective_image_url = dish.image_url if dish and dish.image_url else item.image_url
     return {
         'id': item.dish_id,
         'dishId': item.dish_id,
@@ -157,7 +172,7 @@ def _weekly_to_dict(item):
         'score': item.rating,
         'rating': item.rating,
         'price': item.price,
-        'imageUrl': _img(item.image_url),
+        'imageUrl': _img(effective_image_url),
         'stall': item.stall_name,
         'tags': item.tags or [],
         'reviewCount': item.review_count,
