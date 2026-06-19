@@ -20,7 +20,7 @@ from app.extensions import db
 
 logger = logging.getLogger(__name__)
 
-EMAIL_REGEX = re.compile(r'^\d+@bjtu\.edu\.cn$')
+EMAIL_REGEX = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 ALLOWED_ROLES = {'user', 'admin', 'superadmin'}
 INVITE_CODE_LENGTH = 6
 INVITE_CODE_DAYS_VALID = 3
@@ -51,7 +51,7 @@ class AuthService:
         """
         用户注册。
         参数说明：
-            email: 邮箱，必须满足 <数字>@bjtu.edu.cn 格式。
+            email: 邮箱地址。
             password: 明文密码。
             nickname: 用户昵称。
             verification_code: 邮箱验证码。
@@ -77,7 +77,7 @@ class AuthService:
         self._validate_field_length('nickname', nickname)
 
         if not EMAIL_REGEX.match(email):
-            raise ValueError('邮箱格式不正确，必须为 <数字>@bjtu.edu.cn。')
+            raise ValueError('邮箱格式不正确。')
 
         if len(password) < 6:
             raise ValueError('密码长度不能少于 6 位。')
@@ -325,7 +325,7 @@ class AuthService:
         """
         email = email.strip().lower()
         if not EMAIL_REGEX.match(email):
-            raise ValueError('邮箱格式不正确，必须为 <数字>@bjtu.edu.cn。')
+            raise ValueError('邮箱格式不正确。')
         send_verification_code_email(email)
         logger.info('验证码已发送至 %s', email)
         return True
