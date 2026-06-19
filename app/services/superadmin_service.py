@@ -5,6 +5,7 @@
 创建时间：2026-05-31
 """
 from datetime import datetime
+from app.extensions import tz_cst
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.security import generate_password_hash
@@ -38,7 +39,7 @@ class SuperadminService:
                     'nickname': u.nickname,
                     'role': u.role,
                     'account_status': u.account_status,
-                    'created_at': u.created_at.isoformat() if u.created_at else '',
+                    'created_at': u.created_at.replace(tzinfo=tz_cst).isoformat() if u.created_at else '',
                 }
                 for u in pagination.items
             ],
@@ -50,7 +51,7 @@ class SuperadminService:
     def set_user_role(self, user_id: str, new_role: str, operator_account: str, operator_id: str) -> dict:
         if new_role not in ('user', 'admin', 'superadmin'):
             raise ValueError('无效的角色值。')
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             raise ValueError('用户不存在。')
         old_role = user.role
@@ -73,7 +74,7 @@ class SuperadminService:
     def set_user_status(self, user_id: str, new_status: str, operator_account: str, operator_id: str) -> dict:
         if new_status not in ('active', 'banned'):
             raise ValueError('无效的状态值。')
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             raise ValueError('用户不存在。')
         old_status = user.account_status
@@ -112,7 +113,7 @@ class SuperadminService:
                     'target_type': log.target_type,
                     'target_id': log.target_id or '',
                     'detail': log.detail or '',
-                    'created_at': log.created_at.isoformat() if log.created_at else '',
+                    'created_at': log.created_at.replace(tzinfo=tz_cst).isoformat() if log.created_at else '',
                 }
                 for log in pagination.items
             ],
@@ -140,7 +141,7 @@ class SuperadminService:
         if len(new_password) > 128:
             raise ValueError('密码长度不能超过 128 个字符。')
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             raise ValueError('用户不存在或已被删除。')
 
@@ -170,7 +171,7 @@ class SuperadminService:
             stats['admin_count'] = User.query.filter_by(role='admin').count()
             stats['superadmin_count'] = User.query.filter_by(role='superadmin').count()
             stats['user_today'] = User.query.filter(
-                User.created_at >= datetime.utcnow().date()
+                User.created_at >= datetime.now(tz_cst).date()
             ).count()
             stats['dish_count'] = Dish.query.count()
             stats['canteen_count'] = Canteen.query.count()

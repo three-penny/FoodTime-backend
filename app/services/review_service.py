@@ -5,6 +5,7 @@
 创建时间：2026-05-24
 """
 import logging
+from app.extensions import tz_cst
 from app.repositories.review_repository import ReviewRepository
 from app.services.points_service import PointsService
 
@@ -202,6 +203,6 @@ class ReviewService:
             'comment': review.comment,
             'status': review.status or 'pending',
             'audit_reason': review.audit_reason or '',
-            'created_at': review.created_at.isoformat() if review.created_at else None,
-            'updated_at': review.updated_at.isoformat() if review.updated_at else None,
+'created_at': review.created_at.replace(tzinfo=tz_cst).isoformat() if review.created_at else None,
+'updated_at': review.updated_at.replace(tzinfo=tz_cst).isoformat() if review.updated_at else None,
         }

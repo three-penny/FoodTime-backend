@@ -10,7 +10,7 @@ import uuid
 import logging
 from werkzeug.utils import secure_filename
 from flask import current_app
-from app.extensions import db
+from app.extensions import db, tz_cst
 from app.repositories.dish_submission_repository import DishSubmissionRepository
 
 logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ class DishSubmissionService:
             'tags': submission.tags,
             'submitter_account': submission.submitter_account,
             'status': submission.status,
-            'created_at': submission.created_at.isoformat() if submission.created_at else None,
+            'created_at': submission.created_at.replace(tzinfo=tz_cst).isoformat() if submission.created_at else None,
         }
 
     def get_submissions_by_user(self, account: str) -> list[dict]:
@@ -303,6 +303,6 @@ class DishSubmissionService:
             'submitter_account': submission.submitter_account,
             'status': submission.status,
             'audit_reason': submission.audit_reason,
-            'created_at': submission.created_at.isoformat() if submission.created_at else None,
-            'updated_at': submission.updated_at.isoformat() if submission.updated_at else None,
+            'created_at': submission.created_at.replace(tzinfo=tz_cst).isoformat() if submission.created_at else None,
+            'updated_at': submission.updated_at.replace(tzinfo=tz_cst).isoformat() if submission.updated_at else None,
         }

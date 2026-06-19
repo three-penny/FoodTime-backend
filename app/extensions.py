@@ -3,11 +3,14 @@
 功能描述：集中初始化并管理所有 Flask 扩展插件，防止组件间循环引用。
 作者：郝炫斌
 """
+from datetime import timezone, timedelta
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
 from redis import Redis
+
+tz_cst = timezone(timedelta(hours=8))
 
 
 naming_convention = {

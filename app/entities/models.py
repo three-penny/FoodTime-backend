@@ -5,8 +5,7 @@
 """
 import uuid
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-from app.extensions import db
+from app.extensions import db, tz_cst
 
 
 
@@ -50,8 +49,8 @@ class Canteen(db.Model):
     student_notes = db.Column(db.JSON)
     intro_blocks = db.Column(db.JSON)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
     stalls = db.relationship('Stall', backref='canteen', lazy=True, cascade="all, delete-orphan")
 
@@ -75,8 +74,8 @@ class Stall(db.Model):
     best_time = db.Column(db.String(50))
     summary = db.Column(db.Text)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
     dishes = db.relationship('Dish', backref='stall', lazy=True, cascade="all, delete-orphan")
 
@@ -91,7 +90,7 @@ class Dish(db.Model):
     """
     __tablename__ = 'dishes'
 
-    id = db.Column(db.String(100), primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
     stall_id = db.Column(db.String(100), db.ForeignKey('stalls.id'), nullable=False)
     canteen_id = db.Column(db.String(50), db.ForeignKey('canteens.id'), nullable=False)
 
@@ -107,8 +106,8 @@ class Dish(db.Model):
     recommend_votes = db.Column(db.Integer, default=0, nullable=False)
     avoid_votes = db.Column(db.Integer, default=0, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
     reviews = db.relationship('Review', backref='dish', lazy=True)
 
@@ -138,8 +137,8 @@ class User(db.Model):
     total_earned_points = db.Column(db.Integer, nullable=False, default=0)
     total_used_points = db.Column(db.Integer, nullable=False, default=0)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
 
 class PointRecord(db.Model):
@@ -160,8 +159,8 @@ class PointRecord(db.Model):
     record_type = db.Column(db.String(20), nullable=False)
     source_or_dest = db.Column(db.String(255), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
 
 class Review(db.Model):
@@ -183,8 +182,8 @@ class Review(db.Model):
     status = db.Column(db.String(20), default='pending')
     audit_reason = db.Column(db.Text)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
 
 class Rant(db.Model):
@@ -208,8 +207,8 @@ class Rant(db.Model):
 
     auditor_account = db.Column(db.String(50), db.ForeignKey('users.account'), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
 
 class VerificationCode(db.Model):
@@ -218,7 +217,7 @@ class VerificationCode(db.Model):
     email = db.Column(db.String(120), primary_key=True)
     code = db.Column(db.String(6), nullable=False)
     expires_at = db.Column(db.Float, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
 
 
 class DailyRecommendation(db.Model):
@@ -235,7 +234,7 @@ class DailyRecommendation(db.Model):
     image_url = db.Column(db.String(255))
     tags = db.Column(db.JSON)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
 
 
 class WeeklyRecommendation(db.Model):
@@ -253,7 +252,7 @@ class WeeklyRecommendation(db.Model):
     tags = db.Column(db.JSON)
     review_count = db.Column(db.Integer, default=0)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
 
 
 class InviteCode(db.Model):
@@ -266,8 +265,8 @@ class InviteCode(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
     creator = db.relationship('User', foreign_keys=[created_by], backref='created_invite_codes')
     user = db.relationship('User', foreign_keys=[used_by], backref='used_invite_code')
@@ -284,7 +283,7 @@ class AuditLog(db.Model):
     target_id = db.Column(db.String(100), nullable=True)
     detail = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
 
 
 class Message(db.Model):
@@ -296,8 +295,8 @@ class Message(db.Model):
     tag = db.Column(db.String(50), nullable=False, default='通知')
     time = db.Column(db.String(20), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
 
 class DishSubmission(db.Model):
@@ -325,5 +324,5 @@ class DishSubmission(db.Model):
 
     auditor_account = db.Column(db.String(50), db.ForeignKey('users.account'), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
+    updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))

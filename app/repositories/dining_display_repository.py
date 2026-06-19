@@ -4,7 +4,7 @@
 作者：郝炫斌
 """
 
-from app.entities.models import Canteen, Stall, Dish
+from app.entities.models import Canteen, Stall, Dish, generate_uuid
 from app.extensions import db
 
 class DiningDisplayRepository:
@@ -114,6 +114,8 @@ class DiningDisplayRepository:
         return result > 0
 
     def create_dish(self, **kwargs) -> Dish:
+        if 'id' not in kwargs or kwargs['id'] is None:
+            kwargs['id'] = generate_uuid()
         dish = Dish(**kwargs)
         db.session.add(dish)
         db.session.flush()

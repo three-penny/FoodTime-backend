@@ -1,6 +1,7 @@
 from app.entities.models import User, PointRecord
 from app.extensions import db
 from datetime import datetime
+from app.extensions import tz_cst
 
 
 class PointsService:
@@ -73,7 +74,7 @@ class PointsService:
         return {'currentPoints': user.current_points}
 
     def daily_checkin(self, user_id):
-        today = datetime.utcnow().date()
+        today = datetime.now(tz_cst).date()
         existing = db.session.query(PointRecord).filter(
             PointRecord.user_id == user_id,
             PointRecord.record_type == 'daily',

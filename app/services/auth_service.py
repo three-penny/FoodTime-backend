@@ -9,6 +9,7 @@ import random
 import string
 import logging
 from datetime import datetime, timedelta
+from app.extensions import tz_cst
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from flask import current_app
@@ -232,7 +233,7 @@ class AuthService:
         invite_code = InviteCode.query.filter_by(code=code, is_active=True).first()
         if not invite_code:
             return False
-        if invite_code.expires_at < datetime.utcnow():
+        if invite_code.expires_at < datetime.now(tz_cst).replace(tzinfo=None):
             return False
         if invite_code.used_by is not None:
             return False
@@ -258,13 +259,13 @@ class AuthService:
             InviteCode.created_by == admin_user_id,
             InviteCode.is_active == True,
             InviteCode.used_by == None,
-            InviteCode.expires_at > datetime.utcnow(),
+            InviteCode.expires_at > datetime.now(tz_cst).replace(tzinfo=None),
         ).first()
 
         if existing:
             return {
                 'code': existing.code,
-                'expires_at': existing.expires_at.isoformat(),
+                'expires_at': existing.expires_at.replace(tzinfo=tz_cst).isoformat(),
                 'is_active': existing.is_active,
             }
 
@@ -272,7 +273,7 @@ class AuthService:
         while InviteCode.query.filter_by(code=new_code).first():
             new_code = self._generate_code_string()
 
-        expires_at = datetime.utcnow() + timedelta(days=INVITE_CODE_DAYS_VALID)
+        expires_at = datetime.now(tz_cst).replace(tzinfo=None) + timedelta(days=INVITE_CODE_DAYS_VALID)
         invite_code = InviteCode(
             code=new_code,
             created_by=admin_user_id,
@@ -287,7 +288,7 @@ class AuthService:
 
         return {
             'code': invite_code.code,
-            'expires_at': invite_code.expires_at.isoformat(),
+            'expires_at': invite_code.expires_at.replace(tzinfo=tz_cst).isoformat(),
             'is_active': invite_code.is_active,
         }
 
@@ -300,7 +301,7 @@ class AuthService:
             InviteCode.created_by == admin_user_id,
             InviteCode.is_active == True,
             InviteCode.used_by == None,
-            InviteCode.expires_at > datetime.utcnow(),
+            InviteCode.expires_at > datetime.now(tz_cst).replace(tzinfo=None),
         ).first()
 
         if not existing:
@@ -308,7 +309,7 @@ class AuthService:
 
         return {
             'code': existing.code,
-            'expires_at': existing.expires_at.isoformat(),
+            'expires_at': existing.expires_at.replace(tzinfo=tz_cst).isoformat(),
             'is_active': existing.is_active,
         }
 
