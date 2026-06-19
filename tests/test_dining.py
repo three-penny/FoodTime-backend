@@ -101,6 +101,44 @@ class TestDining:
         assert resp.status_code == 201
         assert data['data']['id'] == 'test_canteen-新档口'
 
+    def test_create_stall_without_id(self, client, seeded_canteen, admin_headers):
+        resp = client.post('/api/v1/canteens/test_canteen/stalls', json={
+            'name': '自动生成ID档口',
+        }, headers=admin_headers)
+        data = resp.get_json()
+        assert resp.status_code == 201, f'Expected 201, got {resp.status_code}: {data}'
+        assert data['code'] == 0
+        assert data['data']['id'] is not None
+        assert data['data']['id'].startswith('test_canteen-')
+
+    def test_create_stall_duplicate_id(self, client, seeded_canteen, admin_headers):
+        resp = client.post('/api/v1/canteens/test_canteen/stalls', json={
+            'id': 'test_canteen-测试档口',
+            'name': '重复档口',
+        }, headers=admin_headers)
+        data = resp.get_json()
+        assert resp.status_code == 409
+        assert '已存在' in data['message']
+
+    def test_create_canteen_without_id(self, client, admin_headers):
+        resp = client.post('/api/v1/canteens', json={
+            'name': '无ID食堂',
+            'short_name': '无ID',
+        }, headers=admin_headers)
+        data = resp.get_json()
+        assert resp.status_code == 201, f'Expected 201, got {resp.status_code}: {data}'
+        assert data['code'] == 0
+        assert data['data']['id'] is not None
+
+    def test_create_canteen_duplicate_id(self, client, seeded_canteen, admin_headers):
+        resp = client.post('/api/v1/canteens', json={
+            'id': 'test_canteen',
+            'name': '重复食堂',
+        }, headers=admin_headers)
+        data = resp.get_json()
+        assert resp.status_code == 409
+        assert '已存在' in data['message']
+
     def test_update_stall(self, client, seeded_canteen, admin_headers):
         resp = client.put('/api/v1/stalls/test_canteen-测试档口', json={
             'name': '已更新档口',

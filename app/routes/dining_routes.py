@@ -1,6 +1,7 @@
 import os
 import uuid
 from flask import Blueprint, jsonify, request, g, send_from_directory, current_app
+from sqlalchemy.exc import IntegrityError
 from app.services.dining_display_service import DiningDisplayService
 from app.utils.auth_utils import login_required, admin_required
 from app.extensions import db
@@ -102,6 +103,9 @@ def create_canteen():
         canteen = service.dining_repo.create_canteen(**{k: v for k, v in data.items() if v is not None})
         db.session.commit()
         return jsonify({'code': 0, 'message': '创建成功', 'data': {'id': canteen.id}, 'trace_id': g.trace_id}), 201
+    except IntegrityError as e:
+        db.session.rollback()
+        return jsonify({'code': 'DINING_409_001', 'message': f'食堂ID「{data.get("id", "")}」已存在，请使用其他ID', 'trace_id': g.trace_id}), 409
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 'DINING_422_001', 'message': str(e), 'trace_id': g.trace_id}), 422
@@ -137,6 +141,9 @@ def create_stall(canteen_id):
         stall = service.dining_repo.create_stall(**{k: v for k, v in data.items() if v is not None})
         db.session.commit()
         return jsonify({'code': 0, 'message': '创建成功', 'data': {'id': stall.id}, 'trace_id': g.trace_id}), 201
+    except IntegrityError as e:
+        db.session.rollback()
+        return jsonify({'code': 'DINING_409_001', 'message': f'档口ID「{data.get("id", "")}」已存在，请使用其他ID', 'trace_id': g.trace_id}), 409
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 'DINING_422_002', 'message': str(e), 'trace_id': g.trace_id}), 422

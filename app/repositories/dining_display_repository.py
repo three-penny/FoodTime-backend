@@ -86,6 +86,8 @@ class DiningDisplayRepository:
         return result > 0
 
     def create_canteen(self, **kwargs) -> Canteen:
+        if 'id' not in kwargs or kwargs['id'] is None:
+            kwargs['id'] = generate_uuid()
         canteen = Canteen(**kwargs)
         db.session.add(canteen)
         db.session.flush()
@@ -100,6 +102,9 @@ class DiningDisplayRepository:
         return result > 0
 
     def create_stall(self, **kwargs) -> Stall:
+        if 'id' not in kwargs or kwargs['id'] is None:
+            canteen_prefix = kwargs.get('canteen_id', 'stall')
+            kwargs['id'] = f'{canteen_prefix}-{generate_uuid()[:8]}'
         stall = Stall(**kwargs)
         db.session.add(stall)
         db.session.flush()
