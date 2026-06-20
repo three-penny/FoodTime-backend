@@ -131,5 +131,11 @@ class DiningDisplayRepository:
         return result > 0
 
     def delete_dish(self, dish_id: str) -> bool:
-        result = db.session.query(Dish).filter(Dish.id == dish_id).delete()
-        return result > 0
+        from app.entities.models import DailyRecommendation, WeeklyRecommendation
+        DailyRecommendation.query.filter(DailyRecommendation.dish_id == dish_id).delete()
+        WeeklyRecommendation.query.filter(WeeklyRecommendation.dish_id == dish_id).delete()
+        dish = db.session.get(Dish, dish_id)
+        if not dish:
+            return False
+        db.session.delete(dish)
+        return True

@@ -109,7 +109,7 @@ class Dish(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now(tz_cst))
     updated_at = db.Column(db.DateTime, default=datetime.now(tz_cst), onupdate=datetime.now(tz_cst))
 
-    reviews = db.relationship('Review', backref='dish', lazy=True)
+    reviews = db.relationship('Review', backref='dish', lazy=True, cascade='all, delete-orphan')
 
 
 
@@ -174,7 +174,7 @@ class Review(db.Model):
     __tablename__ = 'reviews'
 
     id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
-    dish_id = db.Column(db.String(100), db.ForeignKey('dishes.id'), nullable=False)
+    dish_id = db.Column(db.String(100), db.ForeignKey('dishes.id', ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     rating = db.Column(db.Float, nullable=False)
     comment = db.Column(db.Text, nullable=False)

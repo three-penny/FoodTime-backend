@@ -218,6 +218,22 @@ def get_weekly_recommendations():
     return jsonify({'code': 0, 'message': 'success', 'data': data, 'trace_id': g.trace_id}), 200
 
 
+@dining_bp.post('/recommendations/daily/refresh')
+@admin_required
+def refresh_daily():
+    from app.services.recommendation_service import refresh_daily_recommendations as do_refresh
+    do_refresh()
+    return jsonify({'code': 0, 'message': '每日推荐已刷新', 'data': {}, 'trace_id': g.trace_id}), 200
+
+
+@dining_bp.post('/recommendations/weekly/refresh')
+@admin_required
+def refresh_weekly():
+    from app.services.recommendation_service import refresh_weekly_recommendations as do_refresh
+    do_refresh()
+    return jsonify({'code': 0, 'message': '每周推荐已刷新', 'data': {}, 'trace_id': g.trace_id}), 200
+
+
 @dining_bp.get('/uploads/<folder>/<filename>')
 def serve_upload(folder, filename):
     allowed_folders = {'canteen_img', 'dish_img', 'stall_img', 'submission_img', 'default_img'}

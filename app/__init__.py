@@ -99,6 +99,16 @@ def _init_database(app):
                 logger.info('[DB Init] 检测到 verification_codes 表缺失，正在创建...')
                 db.create_all()
                 logger.info('[DB Init] verification_codes 表已创建。')
+            if 'daily_recommendations' not in existing_tables:
+                logger.info('[DB Init] 检测到 daily_recommendations 表缺失，正在创建...')
+                from app.entities.models import DailyRecommendation
+                db.create_all()
+                logger.info('[DB Init] daily_recommendations 表已创建。')
+            if 'weekly_recommendations' not in existing_tables:
+                logger.info('[DB Init] 检测到 weekly_recommendations 表缺失，正在创建...')
+                from app.entities.models import WeeklyRecommendation
+                db.create_all()
+                logger.info('[DB Init] weekly_recommendations 表已创建。')
 
             from app.entities.models import User
             admin_user = User.query.filter_by(account='admin').first()
@@ -263,5 +273,14 @@ def _setup_scheduler(app):
 
         scheduler.start()
         app.logger.info('[Scheduler] 定时任务已启动')
+
+        with app.app_context():
+            from app.entities.models import DailyRecommendation, WeeklyRecommendation
+            if DailyRecommendation.query.count() == 0:
+                app.logger.info('[Scheduler] 每日推荐表为空，执行首次种子刷新...')
+                refresh_daily_recommendations()
+            if WeeklyRecommendation.query.count() == 0:
+                app.logger.info('[Scheduler] 每周推荐表为空，执行首次种子刷新...')
+                refresh_weekly_recommendations()
     except Exception as e:
         app.logger.warning('[Scheduler] 定时任务启动失败: %s', e)
