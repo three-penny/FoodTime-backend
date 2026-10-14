@@ -109,7 +109,7 @@ class TestDining:
         resp = client.delete('/api/v1/canteens/test_canteen', headers=admin_headers)
         assert resp.status_code == 200
         with client.application.app_context():
-            assert Canteen.query.count() == 0
+            assert db.session.get(Canteen, 'test_canteen') is None
             assert Stall.query.count() == 0
             assert Dish.query.count() == 0
             assert Review.query.count() == 0
@@ -184,7 +184,7 @@ class TestDining:
         resp = client.delete('/api/v1/stalls/test_canteen-测试档口', headers=admin_headers)
         assert resp.status_code == 200
         with client.application.app_context():
-            assert Canteen.query.count() == 1
+            assert db.session.get(Canteen, 'test_canteen') is not None
             assert Stall.query.count() == 0
             assert Dish.query.count() == 0
             assert Review.query.count() == 0
