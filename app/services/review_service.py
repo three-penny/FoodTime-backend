@@ -4,6 +4,8 @@
 作者：FoodTime Backend Team
 创建时间：2026-05-24
 """
+from __future__ import annotations
+
 import logging
 from app.extensions import tz_cst
 from app.repositories.review_repository import ReviewRepository

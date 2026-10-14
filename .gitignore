@@ -19,3 +19,6 @@ data/dish_img/*
 !data/dish_img/.gitkeep
 data/submission_img/*
 !data/submission_img/.gitkeep
+
+# 运行日志
+*.log

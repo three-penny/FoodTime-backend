@@ -4,6 +4,8 @@
 作者：FoodTime Backend Team
 创建时间：2026-05-25
 """
+from __future__ import annotations
+
 import time
 import logging
 from datetime import datetime, timedelta, timezone

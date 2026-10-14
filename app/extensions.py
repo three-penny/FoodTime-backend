@@ -3,6 +3,8 @@
 功能描述：集中初始化并管理所有 Flask 扩展插件，防止组件间循环引用。
 作者：郝炫斌
 """
+from __future__ import annotations
+
 from datetime import timezone, timedelta
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy

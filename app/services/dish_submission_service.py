@@ -4,6 +4,8 @@
 作者：FoodTime Backend Team
 创建时间：2026-05-23
 """
+from __future__ import annotations
+
 import os
 import shutil
 import uuid
