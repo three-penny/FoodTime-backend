@@ -13,8 +13,8 @@ from app.entities.models import (
 
 @pytest.fixture(scope='function')
 def app():
-    with patch('app.__init__._setup_scheduler'):
-        with patch('app.__init__.init_redis'):
+    with patch('app._setup_scheduler'):
+        with patch('app.init_redis'):
             from app import create_app
             application = create_app(TestingConfig)
 
