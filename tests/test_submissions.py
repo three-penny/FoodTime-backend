@@ -52,6 +52,15 @@ class TestSubmissions:
         assert resp.status_code == 200
         assert 'items' in data['data']
 
+    def test_regular_user_cannot_read_other_submissions(self, client, user_headers):
+        resp = client.get('/api/v1/submissions?account=someone-else', headers=user_headers)
+        assert resp.status_code == 403
+
+    def test_regular_user_without_filter_only_reads_own_submissions(self, client, user_headers):
+        resp = client.get('/api/v1/submissions', headers=user_headers)
+        assert resp.status_code == 200
+        assert all(item['submitter_account'] == 'testuser' for item in resp.get_json()['data']['items'])
+
     def test_admin_create_submission(self, client, seeded_canteen, admin_headers):
         resp = client.post('/api/v1/submissions/admin', json={
             'dish_name': '管理员创建菜品',

@@ -14,9 +14,17 @@ def list_rants():
     if auth_header.startswith('Bearer '):
         token = decode_token(auth_header[7:])
 
-    if status and token:
+    is_admin = token and token.get('role') in ('admin', 'superadmin')
+    if status and not is_admin:
+        return jsonify({
+            'code': 'AUTH_403_001',
+            'message': '仅管理员可按审核状态查询吐槽。',
+            'trace_id': g.trace_id,
+        }), 403
+
+    if status:
         data = rant_service.get_rants_by_status(status)
-    elif token:
+    elif is_admin:
         data = rant_service.get_all_rants()
     else:
         data = rant_service.get_approved_rants()

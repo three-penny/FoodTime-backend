@@ -39,6 +39,25 @@ class TestRants:
         data = resp.get_json()
         assert resp.status_code == 200
 
+    def test_regular_user_cannot_filter_pending_rants(self, client, user_headers):
+        resp = client.get('/api/v1/rants?status=pending', headers=user_headers)
+        assert resp.status_code == 403
+
+    def test_regular_user_only_sees_approved_rants(self, client, user_headers, app):
+        with app.app_context():
+            db.session.add(Rant(
+                id=str(uuid.uuid4()),
+                canteen_name='测试食堂',
+                author_account='testuser',
+                content='尚未公开的内容',
+                tag='吐槽',
+                status='pending',
+            ))
+            db.session.commit()
+        resp = client.get('/api/v1/rants', headers=user_headers)
+        assert resp.status_code == 200
+        assert all(item['status'] == 'approved' for item in resp.get_json()['data'])
+
     def test_edit_rant(self, client, user_headers, app):
         with app.app_context():
             existing = db.session.query(Rant).filter_by(author_account='testuser').first()

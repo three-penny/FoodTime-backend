@@ -25,10 +25,16 @@ def list_submissions():
 
     service = DishSubmissionService()
 
-    if account:
-        submissions = service.get_submissions_by_user(account)
+    if g.role in ('admin', 'superadmin'):
+        submissions = service.get_submissions_by_user(account) if account else service.get_all_submissions()
     else:
-        submissions = service.get_all_submissions()
+        if account and account != g.account:
+            return jsonify({
+                'code': 'AUTH_403_001',
+                'message': '只能查看自己的提报。',
+                'trace_id': g.trace_id,
+            }), 403
+        submissions = service.get_submissions_by_user(g.account)
 
     pending_count = sum(1 for s in submissions if s['status'] == 'pending')
     approved_count = sum(1 for s in submissions if s['status'] == 'approved')
