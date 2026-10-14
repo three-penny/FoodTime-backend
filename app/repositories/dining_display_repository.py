@@ -98,8 +98,15 @@ class DiningDisplayRepository:
         return result > 0
 
     def delete_canteen(self, canteen_id: str) -> bool:
-        result = db.session.query(Canteen).filter(Canteen.id == canteen_id).delete()
-        return result > 0
+        from app.entities.models import DailyRecommendation, WeeklyRecommendation
+
+        canteen = db.session.get(Canteen, canteen_id)
+        if not canteen:
+            return False
+        DailyRecommendation.query.filter_by(canteen_id=canteen_id).delete()
+        WeeklyRecommendation.query.filter_by(canteen_id=canteen_id).delete()
+        db.session.delete(canteen)
+        return True
 
     def create_stall(self, **kwargs) -> Stall:
         if 'id' not in kwargs or kwargs['id'] is None:
@@ -115,8 +122,21 @@ class DiningDisplayRepository:
         return result > 0
 
     def delete_stall(self, stall_id: str) -> bool:
-        result = db.session.query(Stall).filter(Stall.id == stall_id).delete()
-        return result > 0
+        from app.entities.models import DailyRecommendation, WeeklyRecommendation
+
+        stall = db.session.get(Stall, stall_id)
+        if not stall:
+            return False
+        dish_ids = [dish.id for dish in stall.dishes]
+        if dish_ids:
+            DailyRecommendation.query.filter(
+                DailyRecommendation.dish_id.in_(dish_ids)
+            ).delete(synchronize_session=False)
+            WeeklyRecommendation.query.filter(
+                WeeklyRecommendation.dish_id.in_(dish_ids)
+            ).delete(synchronize_session=False)
+        db.session.delete(stall)
+        return True
 
     def create_dish(self, **kwargs) -> Dish:
         if 'id' not in kwargs or kwargs['id'] is None:

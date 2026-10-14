@@ -2,7 +2,9 @@ import io
 import uuid
 import pytest
 from app.extensions import db
-from app.entities.models import Dish, Stall, Canteen
+from app.entities.models import (
+    Dish, Stall, Canteen, Review, DailyRecommendation, WeeklyRecommendation,
+)
 
 
 class TestDining:
@@ -92,6 +94,28 @@ class TestDining:
         resp = client.delete('/api/v1/canteens/test_canteen', headers=admin_headers)
         assert resp.status_code == 200
 
+    def test_delete_canteen_removes_descendants(self, client, seeded_review, admin_headers):
+        with client.application.app_context():
+            db.session.add(DailyRecommendation(
+                dish_id='test_canteen-测试菜品', canteen_id='test_canteen',
+                dish_name='测试菜品', canteen_name='测试食堂',
+            ))
+            db.session.add(WeeklyRecommendation(
+                dish_id='test_canteen-测试菜品', canteen_id='test_canteen',
+                dish_name='测试菜品', canteen_name='测试食堂',
+            ))
+            db.session.commit()
+
+        resp = client.delete('/api/v1/canteens/test_canteen', headers=admin_headers)
+        assert resp.status_code == 200
+        with client.application.app_context():
+            assert Canteen.query.count() == 0
+            assert Stall.query.count() == 0
+            assert Dish.query.count() == 0
+            assert Review.query.count() == 0
+            assert DailyRecommendation.query.count() == 0
+            assert WeeklyRecommendation.query.count() == 0
+
     def test_create_stall(self, client, seeded_canteen, admin_headers):
         resp = client.post('/api/v1/canteens/test_canteen/stalls', json={
             'id': 'test_canteen-新档口',
@@ -148,6 +172,23 @@ class TestDining:
     def test_delete_stall(self, client, seeded_canteen, admin_headers):
         resp = client.delete('/api/v1/stalls/test_canteen-测试档口', headers=admin_headers)
         assert resp.status_code == 200
+
+    def test_delete_stall_removes_dishes(self, client, seeded_review, admin_headers):
+        with client.application.app_context():
+            db.session.add(DailyRecommendation(
+                dish_id='test_canteen-测试菜品', canteen_id='test_canteen',
+                dish_name='测试菜品', canteen_name='测试食堂',
+            ))
+            db.session.commit()
+
+        resp = client.delete('/api/v1/stalls/test_canteen-测试档口', headers=admin_headers)
+        assert resp.status_code == 200
+        with client.application.app_context():
+            assert Canteen.query.count() == 1
+            assert Stall.query.count() == 0
+            assert Dish.query.count() == 0
+            assert Review.query.count() == 0
+            assert DailyRecommendation.query.count() == 0
 
     def test_create_dish_without_id(self, client, seeded_canteen, admin_headers):
         stall_id = 'test_canteen-测试档口'
