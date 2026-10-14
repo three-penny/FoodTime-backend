@@ -39,6 +39,17 @@ class TestSuperadmin:
         }, headers=superadmin_headers)
         assert resp.status_code == 422
 
+    def test_cannot_change_own_role(self, client, superadmin_headers, app):
+        with app.app_context():
+            uid = User.query.filter_by(account='superadmin').first().id
+        resp = client.put(f'/api/v1/superadmin/users/{uid}/role', json={
+            'role': 'admin',
+        }, headers=superadmin_headers)
+        assert resp.status_code == 422
+        assert '不能修改自己的角色' in resp.get_json()['message']
+        with app.app_context():
+            assert db.session.get(User, uid).role == 'superadmin'
+
     def test_set_user_status_banned(self, client, superadmin_headers, app):
         with app.app_context():
             user = User.query.filter_by(account='testuser').first()

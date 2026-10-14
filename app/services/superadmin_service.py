@@ -51,6 +51,8 @@ class SuperadminService:
     def set_user_role(self, user_id: str, new_role: str, operator_account: str, operator_id: str) -> dict:
         if new_role not in ('user', 'admin', 'superadmin'):
             raise ValueError('无效的角色值。')
+        if user_id == operator_id:
+            raise ValueError('不能修改自己的角色。')
         user = db.session.get(User, user_id)
         if not user:
             raise ValueError('用户不存在。')
